@@ -101,6 +101,6 @@
   "dependencies": {
     "d3-queue": "^3.0.7",
     "d3-request": "^1.0.5",
-    "solarnetwork-api-core": "0.5"
+    "solarnetwork-api-core": "^0.5.2"
   }
 }
