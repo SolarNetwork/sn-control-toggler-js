@@ -447,7 +447,9 @@ class ControlToggler {
 			
 			// if timer was defined, keep going as if interval set
 			if ( this.timer !== undefined ) {
-				this.timer = setTimeout(this.update, this.currentRefreshMs());
+				this.timer = setTimeout(() => {
+						this.update();
+					}, this.currentRefreshMs());
 			}
 		});
 
@@ -464,8 +466,8 @@ class ControlToggler {
         const timer = this.timer;
 		if ( !timer ) {
 			this.timer = setTimeout(() => {
-				this.update();
-			}, (when || 20));
+					this.update();
+				}, (when || 20));
 		}
 		return this;
 	}
