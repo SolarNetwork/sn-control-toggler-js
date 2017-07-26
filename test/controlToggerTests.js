@@ -21,19 +21,14 @@ const TEST_NODE_ID = 123;
 const TEST_DATE_STR = 'Tue, 25 Apr 2017 14:30:00 GMT';
 const TEST_DATE = new Date(TEST_DATE_STR);
 
-const XMLHttpRequest = sinon.useFakeXMLHttpRequest();
-
-/** @type {sinon.SinonFakeXMLHttpRequest} */
-global.XMLHttpRequest = XMLHttpRequest;
-
-test.before(() => {
-    ControlTogger.__Rewire__('xhrRequest', reqMock(XMLHttpRequest));
-});
-
 test.beforeEach(t => {
+    const xhr = sinon.useFakeXMLHttpRequest();
+    ControlTogger.__Rewire__('xhrRequest', reqMock(xhr));
+    t.context.xhr = xhr;
+
     const requests = [];
     t.context.requests = requests;
-    XMLHttpRequest.onCreate = (req) => requests.push(req);
+    xhr.onCreate = (req) => requests.push(req);
 
     const urlHelper = new NodeInstructionUrlHelper({
         host: 'localhost'
@@ -42,22 +37,17 @@ test.beforeEach(t => {
     t.context.urlHelper = urlHelper;
 
     const auth = new TestAuthBuilder(TEST_TOKEN_ID, urlHelper.environment);
-    auth.saveSigningKey(TEST_TOKEN_SECRET);
     auth.fixedDate = TEST_DATE;
+    auth.saveSigningKey(TEST_TOKEN_SECRET);
     t.context.auth = auth;
 });
 
-test.afterEach(() => {
-    XMLHttpRequest.restore();
-});
-
-test.serial('construct', t => {
+test('construct', t => {
     const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
     t.truthy(toggler);
 });
 
 test.serial('setValue', t => {
-    log.debug('Hi there!');
     const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
 
     /** @type {sinon.SinonFakeXMLHttpRequest[]} */
@@ -73,16 +63,12 @@ test.serial('setValue', t => {
     t.deepEqual(queueReq.requestHeaders, {
         'Accept':'application/json',
         'X-SN-Date':TEST_DATE_STR,
+        'Authorization':'SNWS2 Credential=test-token,SignedHeaders=content-type;host;x-sn-date,Signature=0e3806a471d5367b7e2ab914a85dbc3d1229c8eb37c4e41fbe10f2ec02902792',
     });
     queueReq.respond(200, { "Content-Type": "application/json" }, 
         '{"success":true,"data":' 
         +'{"totalResults": 1, "startingOffset": 0, "returnedResultCount": 1, "results": ['
             +'{"created": "2017-07-26 05:57:49.608Z","nodeId":123,"sourceId":"test-control","val":1}'
         +']}}');
-
-    t.is(toggler.value(), 1);
 });
-
-
-todo('Tests!');
 
