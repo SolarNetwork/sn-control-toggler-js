@@ -463,7 +463,9 @@ class ControlToggler {
 	start(when) {
         const timer = this.timer;
 		if ( !timer ) {
-			this.timer = setTimeout(this.update, (when || 20));
+			this.timer = setTimeout(() => {
+				this.update();
+			}, (when || 20));
 		}
 		return this;
 	}

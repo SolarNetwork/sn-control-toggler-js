@@ -276,3 +276,51 @@ test.serial('update:noPendingLastKnownQueued', t => {
         ]
     });
 });
+
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+test.serial('start', async t => {
+    const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
+
+    toggler.start(10);
+    await timeout(15);
+
+    /** @type {sinon.SinonFakeXMLHttpRequest[]} */
+    const reqs = t.context.requests;
+
+    t.is(reqs.length, 2, 'get most recent datum and view pending instructions');
+
+    const datumReq = reqs[0];
+    t.is(datumReq.method, 'GET');
+    t.is(datumReq.url, "https://localhost/solarquery/api/v1/sec/datum/mostRecent?nodeId=123&sourceId=test-control");
+    t.deepEqual(datumReq.requestHeaders, {
+        'Accept':'application/json',
+        'X-SN-Date':TEST_DATE_STR,
+        'Authorization':'SNWS2 Credential=test-token,SignedHeaders=host;x-sn-date,Signature=a68ae1d9b9343a000d615c861faa8f03d1913b8fc2a1895faa9f7ab93c386bb5',
+    });
+    datumReq.respond(200, { "Content-Type": "application/json" }, 
+        '{"success":true,"data":' 
+        +'{"totalResults": 1, "startingOffset": 0, "returnedResultCount": 1, "results": ['
+            +'{"created": "2017-07-26 05:57:49.608Z","nodeId":123,"sourceId":"test-control","val":1}'
+        +']}}');
+
+    const pendingReq = reqs[1];
+    t.is(pendingReq.method, 'GET');
+    t.is(pendingReq.url, 'https://localhost/solaruser/api/v1/sec/instr/viewPending?nodeId=123');
+    t.deepEqual(pendingReq.requestHeaders, {
+        'Accept':'application/json',
+        'X-SN-Date':TEST_DATE_STR,
+        'Authorization':'SNWS2 Credential=test-token,SignedHeaders=host;x-sn-date,Signature=e44457f0dc787fdf7b18620ca934312578db21d4e8f9ac3511baaaf246d22983',
+    });
+    pendingReq.respond(200, { "Content-Type": "application/json" }, 
+        '{"success":true,"data":[]}'); // nothing pending
+
+    t.deepEqual(toggler.lastKnownDatum, {
+        created: "2017-07-26 05:57:49.608Z",
+        nodeId: 123,
+        sourceId: "test-control",
+        val: 1
+    });
+});
