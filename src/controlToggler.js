@@ -315,7 +315,7 @@ class ControlToggler {
 			// cancel the pending instruction
 			log.debug('Canceling %d pending control %s switch to %s', instrUrlHelper.nodeId, controlId,  pendingValue);
             const cancelInstructionUrl = instrUrlHelper.updateInstructionStateUrl(
-				this.lastKnownInstruction.id, InstructionStates.Declined.name);
+				this.lastKnownInstruction.id, InstructionStates.Declined);
 			this.deferJsonRequestWithAuth(q, HttpMethod.POST, cancelInstructionUrl);
 			this.lastKnownInstruction = undefined;
 			pendingState = undefined;
