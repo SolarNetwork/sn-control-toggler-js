@@ -56,7 +56,7 @@ function mock(XMLHttpRequest) {
         
         self.send = (method, data, cb) => {
             xhr.open(method, url);
-            headers.forEach((k, v) => {
+            headers.forEach((v, k) => {
                 xhr.setRequestHeader(k, v);
             });
             if ( cb ) {
