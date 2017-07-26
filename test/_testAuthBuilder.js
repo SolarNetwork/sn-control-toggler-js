@@ -22,6 +22,10 @@ class TestAuthorizationV2Builder extends AuthorizationV2Builder {
         super.date(d);
     }
 
+    get signingKeyValid() {
+        return (this.signingKey ? true : false);
+    }
+
     /**
      * Set the authorization request date.
      *
