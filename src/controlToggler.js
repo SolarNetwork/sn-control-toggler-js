@@ -3,7 +3,6 @@ import { queue } from 'd3-queue';
 import { 
 	AuthorizationV2Builder,
 	dateParser,
-	DatumFilter,
 	HttpContentType,
 	HttpHeaders,
 	HttpMethod,
@@ -252,6 +251,7 @@ class ControlToggler {
 	 * @param {string} method the HTTP method
 	 * @param {string} url the URL
 	 * @param {string} [contentType] a HTTP content type to use
+	 * @returns {void}
 	 * @private
 	 */
 	handleRequestAuth(request, method, url, contentType) {
@@ -392,10 +392,10 @@ class ControlToggler {
 		const viewPendingUrl = instrUrlHelper.viewPendingInstructionsUrl();
 		this.deferJsonRequestWithAuth(q, HttpMethod.GET, viewPendingUrl);
 
-		if ( this.lastKnownInstruction && InstructionFinishedStates.has(this.lastKnownInstructionState()) ) {
+		if ( this.lastKnownInstruction && !InstructionFinishedStates.has(this.lastKnownInstructionState()) ) {
 			// also refresh this specific instruction, to know when it goes to Completed so we can
 			// assume the control value has changed, even if the mostRecent data lags behind
-			const viewInstructionUrl = instrUrlHelper.viewInstructionsUrl(this.lastKnownInstruction.id);
+			const viewInstructionUrl = instrUrlHelper.viewInstructionUrl(this.lastKnownInstruction.id);
 			this.deferJsonRequestWithAuth(q, HttpMethod.GET, viewInstructionUrl);
 		}
 
