@@ -282,7 +282,7 @@ class ControlToggler {
 		if ( method !== HttpMethod.GET ) {
 			queryIndex = url.indexOf('?');
 			reqData = url.substring(queryIndex + 1);
-			contentType = HttpContentType.FORM_URLENCODED;
+			contentType = HttpContentType.FORM_URLENCODED_UTF8;
 		}
 		const req = xhrRequest(queryIndex >= 0 ? url.substring(0, queryIndex) : url)
 			.mimeType(HttpContentType.APPLICATION_JSON)
