@@ -141,7 +141,7 @@ class ControlToggler {
          * 
          * @type {function}
          */
-        this.callback = null;
+        this.callback = undefined;
     }
 
 	notifyDelegate(error) {
@@ -338,7 +338,12 @@ class ControlToggler {
 				// we queued nothing
 				return;
 			}
-			const cancelResult = results[0];
+			results.forEach((e, i) => {
+				if ( e.responseText ) {
+					results[i] = JSON.parse(e.responseText);
+				}
+			});
+			const cancelResult =results[0];
 			// note == null check here, which handles either undefined or null
 			if ( cancelResult.data == null && cancelResult.success === true ) {
 				// it was cancelled

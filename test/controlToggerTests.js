@@ -128,7 +128,19 @@ test.serial('setValue', t => {
 
     toggler.value(1);
 
-    t.is(reqs.length, 1)
+    t.is(reqs.length, 1);
+
+    const queueReq = reqs[0];
+    t.is(queueReq.url, "https://localhost/solaruser/api/v1/sec/instr/add");
+    t.is(queueReq.requestBody, 'nodeId=123&topic=SetControlParameter&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1');
+    t.deepEqual(queueReq.requestHeaders, {
+        'Accept':'application/json'
+    });
+    queueReq.respond(200, { "Content-Type": "application/json" }, 
+        '{"success":true,"data":' 
+        +'{"totalResults": 1, "startingOffset": 0, "returnedResultCount": 1, "results": ['
+            +'{"created": "2017-07-26 05:57:49.608Z","nodeId":123,"sourceId":"test-control","val":1}'
+        +']}}');
 
     t.is(toggler.value(), 1);
 });
