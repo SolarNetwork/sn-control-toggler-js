@@ -1,4 +1,4 @@
-import { jsonRequest } from 'd3-request';
+import { request as jsonRequest } from 'd3-request';
 import { queue } from 'd3-queue';
 import { 
 	AuthorizationV2Builder,
@@ -111,14 +111,14 @@ class ControlToggler {
          * @type {ControlDatum}
          * @private
          */
-        this.lastKnownStatus = null;
+        this.lastKnownDatum = undefined;
 
         /**
          * The last known instruction object.
          * @type {Instruction}
          * @private
          */
-        this.lastKnownInstruction = null;
+        this.lastKnownInstruction = undefined;
 
         /**
          * The refresh rate, in milliseconds.
@@ -284,7 +284,7 @@ class ControlToggler {
 			reqData = url.substring(queryIndex + 1);
 			contentType = HttpContentType.FORM_URLENCODED;
 		}
-		const req = jsonRequest.request(queryIndex >= 0 ? url.substring(0, queryIndex) : url)
+		const req = jsonRequest(queryIndex >= 0 ? url.substring(0, queryIndex) : url)
 			.mimeType(HttpContentType.APPLICATION_JSON)
 			.on('beforesend', (request) => {
 				this.handleRequestAuth(request, method, url, contentType);
@@ -301,11 +301,14 @@ class ControlToggler {
 	 *                                  setter, this object
 	 */
 	value(desiredValue) {
-		if ( !arguments.length ) return (this.lastKnownStatus === undefined ? undefined : this.lastKnownStatus.val);
+		if ( !arguments.length ) return (this.lastKnownDatum === undefined ? undefined : this.lastKnownDatum.val);
+		if ( !this.authBuilder.signingKeyValid ) {
+			throw new Error('Valid credentials not configured');
+		}
         const controlId = this.controlId;
 		const instrUrlHelper = this.instructionUrlHelper;
 		const q = queue();
-		var currentValue = (this.lastKnownStatus === undefined ? undefined : this.lastKnownStatus.val);
+		var currentValue = (this.lastKnownDatum === undefined ? undefined : this.lastKnownDatum.val);
 		var pendingState = this.lastKnownInstructionState();
 		var pendingValue = this.lastKnownInstructionValue();
 		if ( pendingState === InstructionStates.Queued && pendingValue !== desiredValue ) {
@@ -364,7 +367,7 @@ class ControlToggler {
      * @returns {ControlToggler} this object
      */
 	update() {
-		if ( this.authBuilder.signingKeyValid ) {
+		if ( !this.authBuilder.signingKeyValid ) {
 			throw new Error('Valid credentials not configured');
 		}
 		const controlId = this.controlId;
@@ -410,9 +413,9 @@ class ControlToggler {
 				if ( newValue !== currValue ) {
 					log.debug('Control %s for %d value is currently %d', controlId, 
 						instrUrlHelper.nodeId, (newValue !== undefined ? newValue : 'N/A'));
-					this.lastKnownStatus = mostRecentControlDatum;
-					if ( this.lastKnownStatus && !pendingInstruction ) {
-						this.lastKnownStatus.val = newValue; // force this, because instruction value might be newer than status value
+					this.lastKnownDatum = mostRecentControlDatum;
+					if ( this.lastKnownDatum && !pendingInstruction ) {
+						this.lastKnownDatum.val = newValue; // force this, because instruction value might be newer than status value
 					}
 					this.lastKnownInstruction = (execInstruction ? execInstruction : pendingInstruction);
 					
