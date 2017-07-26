@@ -96,11 +96,12 @@
     "rollup-plugin-babel": "^2.7.1",
     "rollup-plugin-includepaths": "^0.2.2",
     "semver": "^5.3.0",
+    "sinon": "^2.3.8",
     "uglify-es": "^3.0.25"
   },
   "dependencies": {
     "d3-queue": "^3.0.7",
     "d3-request": "^1.0.5",
-    "solarnetwork-api-core": "^0.5.2"
+    "solarnetwork-api-core": "SolarNetwork/sn-api-core-js#develop"
   }
 }
