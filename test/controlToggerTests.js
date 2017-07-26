@@ -1,12 +1,12 @@
 import {test,todo} from 'ava';
 import sinon from 'sinon';
 import {
-    AuthorizationV2Builder,
     Logger as log,
     logLevels,
     NodeInstructionUrlHelper,
 } from 'solarnetwork-api-core';
 
+import TestAuthBuilder from './_testAuthBuilder';
 import reqMock from './_d3requestMock';
 
 import ControlTogger from '../src/controlToggler';
@@ -17,6 +17,9 @@ const TEST_CONTROL_ID = 'test-control';
 const TEST_TOKEN_ID = 'test-token';
 const TEST_TOKEN_SECRET = 'secret';
 const TEST_NODE_ID = 123;
+
+const TEST_DATE_STR = 'Tue, 25 Apr 2017 14:30:00 GMT';
+const TEST_DATE = new Date(TEST_DATE_STR);
 
 const XMLHttpRequest = sinon.useFakeXMLHttpRequest();
 
@@ -38,8 +41,9 @@ test.beforeEach(t => {
     urlHelper.nodeId = TEST_NODE_ID;
     t.context.urlHelper = urlHelper;
 
-    const auth = new AuthorizationV2Builder(TEST_TOKEN_ID, urlHelper.environment);
+    const auth = new TestAuthBuilder(TEST_TOKEN_ID, urlHelper.environment);
     auth.saveSigningKey(TEST_TOKEN_SECRET);
+    auth.fixedDate = TEST_DATE;
     t.context.auth = auth;
 });
 
@@ -67,7 +71,8 @@ test.serial('setValue', t => {
     t.is(queueReq.url, "https://localhost/solaruser/api/v1/sec/instr/add");
     t.is(queueReq.requestBody, 'nodeId=123&topic=SetControlParameter&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1');
     t.deepEqual(queueReq.requestHeaders, {
-        'Accept':'application/json'
+        'Accept':'application/json',
+        'X-SN-Date':TEST_DATE_STR,
     });
     queueReq.respond(200, { "Content-Type": "application/json" }, 
         '{"success":true,"data":' 
