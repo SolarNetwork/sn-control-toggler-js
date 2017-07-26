@@ -10,6 +10,7 @@ import {
 	InstructionState,
 	InstructionStates,
 	Logger as log,
+	NodeDatumUrlHelper,
  } from 'solarnetwork-api-core';
 
 const SetControlParameterInstructionName = 'SetControlParameter';
@@ -36,74 +37,100 @@ const InstructionFinishedStates = new Set([
 ]);
 
 /**
+ * @typedef {Object} ControlDatum
+ * @property {string} created the datum date
+ * @property {string} sourceId the control ID
+ * @property {number} val the control value, essentially `0` or `1`
+ */
+
+ /**
+  * @typedef {Object} InstructionParameter
+  * @property {string} name the parameter name
+  * @property {string} value the parameter value
+  */
+
+ /**
+  * @typedef {Object} Instruction
+  * @property {number} id the unique ID of the instruction
+  * @property {string} created the instruction date
+  * @property {string} status an `InstructionStatus` name value
+  * @property {InstructionParameter[]} [parameters] the instruction parameters
+  */
+
+/**
  * Manage the state of a boolean control switch using SolarNetwork `SetControlParameter` instructions.
  */
 class ControlToggler {
     /**
      * Constructor.
-     * @param {module:solarnetwork-api-core:UrlHelper} urlHelper the URL helper to use, which must support node instructions with the `NodeInstructionUrlHelperMixin`
+     * @param {NodeInstructionUrlHelper} urlHelper the URL helper to use, which must support node instructions with the `NodeInstructionUrlHelperMixin`
      *                    and be configured with the `nodeId` property for the node to be managed
 	 * @param {AuthorizationV2Builder} authBuilder the auth builder to authenticate requests with; the required credentials
 	 *                                             must be set appropriately
      * @param {string} [controlId=/power/switch/1] the ID of the control to manage
+	 * @param {NodeDatumUrlHelper} [queryUrlHelper] a URL helper for accessing node datum via SolarQuery; if not provided one
+	 *                                              will be created using the `environment` from `urlHelper`
      */
-    constructor(urlHelper, authBuilder, controlId) {
+    constructor(urlHelper, authBuilder, controlId, queryUrlHelper) {
 
         /**
          * The URL helper to use, which must support node instructions with the `NodeInstructionUrlHelperMixin`
          * and be configured with the `nodeId` property for the node to be managed.
-         * @member {module:solarnetwork-api-core:UrlHelper}
-		 * @mixes module:solarnetwork-api-core:NodeInstructionUrlHelperMixin
+         * @type {NodeInstructionUrlHelper}
          */
-		this.nodeUrlHelper = urlHelper;
+		this.instructionUrlHelper = urlHelper;
 		
 		/**
 		 * The auth builder to use for authorizing requets. The credentials must be configured to support
 		 * posting instructions and viewing the data for the configured `controlId`.
-		 * @member {AuthorizationV2Builder}
+		 * @type {AuthorizationV2Builder}
 		 */
 		this.authBuilder = authBuilder || new AuthorizationV2Builder(null, urlHelper ? urlHelper.environment : undefined);
 
         /**
          * The control ID to manage.
-         * @member {string}
+         * @type {string}
          */
-        this.controlId = controlId;
+		this.controlId = controlId;
+		
+		/**
+		 * The SolarQuery URL helper.
+		 * @type {NodeDatumUrlHelper}
+		 */
+		this.queryUrlHelper = (queryUrlHelper || new NodeDatumUrlHelper(urlHelper.environment));
 
         /**
          * A timer ID for refreshing the local state.
-         * @member {number}
+         * @type {number}
          * @private
          */
-        this.timer = null;
-
+		this.timer = null;
+		
         /**
          * The last known instruction status. The `val` property indicates the control value.
-         * @member {object}
+         * @type {ControlDatum}
          * @private
          */
         this.lastKnownStatus = null;
 
         /**
          * The last known instruction object.
-         * @member {object}
+         * @type {Instruction}
          * @private
          */
         this.lastKnownInstruction = null;
 
-        this.lastHadCredentials = null;
-
         /**
          * The refresh rate, in milliseconds.
          * Defaults to 20 seconds.
-         * @member {number}
+         * @type {number}
          */
         this.refreshMs = 20000;
 
         /**
          * The refresh rate, in milliseconds, when a toggle instruction is queued.
          * Defaults to 5 seconds.
-         * @member {number}
+         * @type {number}
          */
         this.pendingRefreshMs = 5000;
 
@@ -131,8 +158,8 @@ class ControlToggler {
     /**
      * Find an active `SetControlParameterInstruction` for the configured `controlId`.
      * 
-     * @param {object[]} data array of instructions
-     * @returns {object} the active instruction, or `undefined`
+     * @param {Instruction[]} data array of instructions
+     * @returns {Instruction} the active instruction, or `undefined`
      * @private
      */
     getActiveInstruction(data) {
@@ -141,7 +168,7 @@ class ControlToggler {
         }
         const controlId = this.controlId;
 		var instruction = data.reduce((prev, curr) => {
-			if ( curr.topic === SetControlParameterInstruction && Array.isArray(curr.parameters)
+			if ( curr.topic === SetControlParameterInstructionName && Array.isArray(curr.parameters)
 				&& curr.parameters.length > 0 && curr.parameters[0].name === controlId
 				&& (prev === undefined || prev.created < curr.created) ) {
 				return curr;
@@ -150,7 +177,7 @@ class ControlToggler {
 		}, undefined);
 		if ( instruction !== undefined ) {
 			log.debug('Active instruction for %d found in state %s (set control %s to %s)', 
-				this.nodeUrlHelper.nodeId, instruction.state, controlId, instruction.parameters[0].value);
+				this.instructionUrlHelper.nodeId, instruction.state, controlId, instruction.parameters[0].value);
 		}
 		return instruction;
 	}
@@ -189,6 +216,84 @@ class ControlToggler {
 	}
 	
 	/**
+	 * Return the value from either the `controlStatus` or the first parameter value of an `instruction`,
+	 * whichever is valid and more recent.
+	 * 
+	 * @param {ControlDatum} controlDatum a control status object
+	 * @param {Instruction} instruction  an instruction object
+	 * @returns {number} the control status value
+	 * @private
+	 */
+	mostRecentValue(controlDatum, instruction) {
+		if ( !instruction || InstructionStates.Declined.equals(instruction.status) ) {
+			return (controlDatum ? controlDatum.val : undefined);
+		} else if ( !controlDatum ) {
+			return Number(instruction.parameters[0].value);
+		}
+		// return the newer value
+		const statusDate = dateParser(controlDatum.created);
+		const instructionDate = dateParser(instruction.created);
+		return (statusDate.getTime() > instructionDate.getTime() 
+			? controlDatum.val 
+			: Number(instruction.parameters[0].value));
+	}
+	
+	/**
+	 * Handle the authentication for a request.
+	 * 
+	 * <p>If the `url` contains query parameters and the `GET`` request is **not** used,
+	 * the `HttpContentType.FORM_URLENCODED` content type will be assumed.</p>
+	 * 
+	 * @param {jsonRequest} request the XHR
+	 * @param {string} method the HTTP method
+	 * @param {string} url the URL
+	 * @param {string} [contentType] a HTTP content type to use
+	 * @private
+	 */
+	handleRequestAuth(request, method, url, contentType) {
+		const now = new Date();
+		this.authBuilder.reset().date(now).snDate(true)
+			.method(method)
+			.url(url);
+		if ( contentType ) {
+			this.authBuilder.contentType(contentType);
+		}
+		request.setRequestHeader(HttpHeaders.X_SN_DATE, this.authBuilder.requestDateHeaderValue);
+		request.setRequestHeader(HttpHeaders.AUTHORIZATION, this.authBuilder.buildWithSavedKey());
+	}
+
+	/**
+	 * Defer a JSON request on a queue.
+	 * 
+	 * <p>If the `url` contains query parameters and the `GET`` method is **not** used,
+	 * the query parameters will be removed fom the URL and posted on the request body
+	 * instead, using the `HttpContentType.FORM_URLENCODED` content type.</p>
+	 * 
+	 * @param {Queue} q the queue to defer with 
+	 * @param {string} method the HTTP method
+	 * @param {string} url the URL
+	 * @returns {ControlToggler} this object
+	 * @private
+	 */
+	deferJsonRequestWithAuth(q, method, url) {
+		let queryIndex = -1;
+		let reqData = undefined;
+		let contentType = undefined;
+		if ( method !== HttpMethod.GET ) {
+			queryIndex = url.indexOf('?');
+			reqData = url.substring(queryIndex + 1);
+			contentType = HttpContentType.FORM_URLENCODED;
+		}
+		const req = jsonRequest.request(queryIndex >= 0 ? url.substring(0, queryIndex) : url)
+			.mimeType(HttpContentType.APPLICATION_JSON)
+			.on('beforesend', (request) => {
+				this.handleRequestAuth(request, method, url, contentType);
+			});
+		q.defer(req.send, method, reqData);
+		return this;
+	}
+    
+	/**
 	 * Get or set the desired control value.
 	 * 
 	 * @param {number} [desiredValue] the control value to set
@@ -198,60 +303,31 @@ class ControlToggler {
 	value(desiredValue) {
 		if ( !arguments.length ) return (this.lastKnownStatus === undefined ? undefined : this.lastKnownStatus.val);
         const controlId = this.controlId;
-        const nodeUrlHelper = this.nodeUrlHelper;
+		const instrUrlHelper = this.instructionUrlHelper;
 		const q = queue();
 		var currentValue = (this.lastKnownStatus === undefined ? undefined : this.lastKnownStatus.val);
 		var pendingState = this.lastKnownInstructionState();
 		var pendingValue = this.lastKnownInstructionValue();
 		if ( pendingState === InstructionStates.Queued && pendingValue !== desiredValue ) {
 			// cancel the pending instruction
-			log.debug('Canceling %d pending control %s switch to %s', 
-				nodeUrlHelper.nodeId, controlId,  pendingValue);
-            
-            /** @type {string} */
-            const cancelInstructionUrl = nodeUrlHelper.updateInstructionStateUrl(
+			log.debug('Canceling %d pending control %s switch to %s', instrUrlHelper.nodeId, controlId,  pendingValue);
+            const cancelInstructionUrl = instrUrlHelper.updateInstructionStateUrl(
 				this.lastKnownInstruction.id, InstructionStates.Declined.name);
-			const queryIdx = cancelInstructionUrl.indexOf('?');
-            const cancelInstructionReq = jsonRequest.request(cancelInstructionUrl.substring(0, queryIdx))
-                .contentType(HttpContentType.FORM_URLENCODED)
-				.on('beforesend', (request) => {
-					const now = new Date();
-					this.authBuilder.reset().date(now).snDate(true)
-						.method(HttpMethod.POST)
-						.contentType(HttpContentType.FORM_URLENCODED)
-						.url(cancelInstructionUrl);
-					request.setRequestHeader(HttpHeaders.X_SN_DATE, this.authBuilder.requestDateHeaderValue);
-					request.setRequestHeader(HttpHeaders.AUTHORIZATION, this.authBuilder.buildWithSavedKey());
-				});
-			q.defer(cancelInstructionReq.send, HttpMethod.POST, cancelInstructionUrl.substring(queryIdx + 1));
+			this.deferJsonRequestWithAuth(q, HttpMethod.POST, cancelInstructionUrl);
 			this.lastKnownInstruction = undefined;
 			pendingState = undefined;
 			pendingValue = undefined;
 		}
 		if ( currentValue !== desiredValue && pendingValue !== desiredValue ) {
-			log.debug('Request %d to change control %s to %d', 
-				nodeUrlHelper.nodeId, controlId, desiredValue);
-            /** @type {string} */
-            const queueInstructionUrl = nodeUrlHelper.queueInstructionUrl(SetControlParameterInstructionName, [
+			log.debug('Request %d to change control %s to %d',  instrUrlHelper.nodeId, controlId, desiredValue);
+            const queueInstructionUrl = instrUrlHelper.queueInstructionUrl(SetControlParameterInstructionName, [
 				{name: controlId, value: String(desiredValue)}
 			]);
-			const queryIdx = queueInstructionUrl.indexOf('?');
-            const queueInstructionReq = jsonRequest.request(queueInstructionUrl.substring(0, queryIdx))
-                .contentType(HttpContentType.FORM_URLENCODED)
-				.on('beforesend', (request) => {
-					const now = new Date();
-					this.authBuilder.reset().date(now).snDate(true)
-						.method(HttpMethod.POST)
-						.contentType(HttpContentType.FORM_URLENCODED)
-						.url(queueInstructionUrl);
-					request.setRequestHeader(HttpHeaders.X_SN_DATE, this.authBuilder.requestDateHeaderValue);
-					request.setRequestHeader(HttpHeaders.AUTHORIZATION, this.authBuilder.buildWithSavedKey());
-				});
-			q.defer(queueInstructionReq.send, HttpMethod.POST, queueInstructionUrl.substring(queryIdx + 1));
+			this.deferJsonRequestWithAuth(q, HttpMethod.POST, queueInstructionUrl);
 		}
 		q.awaitAll((error, results) => {
 			if ( error ) {
-				log.error('Error updating {2} control toggler {0}: {1}', controlId, error.status, this.nodeUrlHelper.nodeId);
+				log.error('Error updating %d control toggler %s: %s', instrUrlHelper.nodeId, controlId, error.status);
 				this.notifyDelegate(error);
 				return;
 			}
@@ -283,130 +359,75 @@ class ControlToggler {
 		return this;
 	}
 	
-	/**
-	 * Return either the `controlStatus` value or the first parameter value of an `instruction`,
-	 * whichever is valid and more recent.
-	 * 
-	 * @param {object} controlStatus a control status object
-	 * @param {object} instruction  an instruction object
-	 * @returns {number} the control status value
-	 * @private
-	 */
-	mostRecentValue(controlStatus, instruction) {
-		if ( !instruction || InstructionStates.Declined.equals(instruction.status) ) {
-			return (controlStatus ? controlStatus.val : undefined);
-		} else if ( !controlStatus ) {
-			return Number(instruction.parameters[0].value);
-		}
-		// return the newer value
-		const statusDate = dateParser(controlStatus.created);
-		const instructionDate = dateParser(instruction.created);
-		return (statusDate.getTime() > instructionDate.getTime() 
-			? controlStatus.val 
-			: Number(instruction.parameters[0].value));
-	}
-    
     /**
      * Refresh the control state from SolarNetwork.
      * @returns {ControlToggler} this object
-     * @private
      */
 	update() {
+		if ( this.authBuilder.signingKeyValid ) {
+			throw new Error('Valid credentials not configured');
+		}
 		const controlId = this.controlId;
-		const nodeUrlHelper = this.nodeUrlHelper;
+		const instrUrlHelper = this.instructionUrlHelper;
+		const queryUrlHelper = this.queryUrlHelper;
 		const q = queue();
 		const controlFilter = new DatumFilter();
 		controlFilter.sourceId = controlId;
 
-		const mostRecentUrl = nodeUrlHelper.mostRecentDatumUrl(controlFilter);
-		const mostRecentReq = jsonRequest.request(mostRecentUrl)
-			.mimeType(HttpContentType.APPLICATION_JSON)
-			.on('beforesend', (request) => {
-				const now = new Date();
-				this.authBuilder.reset().date(now).snDate(true)
-					.method(HttpMethod.GET)
-					.url(mostRecentUrl);
-				request.setRequestHeader(HttpHeaders.X_SN_DATE, this.authBuilder.requestDateHeaderValue);
-				request.setRequestHeader(HttpHeaders.AUTHORIZATION, this.authBuilder.buildWithSavedKey());
-			});
-		q.defer(mostRecentReq.get);
+		// query for most recently available datum for control to check control value
+		const mostRecentUrl = queryUrlHelper.mostRecentDatumUrl(controlFilter);
+		this.deferJsonRequestWithAuth(q, HttpMethod.GET, mostRecentUrl);
 
-		if ( this.authBuilder.signingKeyValid ) {
-			const viewPendingUrl = nodeUrlHelper.viewPendingInstructionsUrl();
-			const viewPendingReq = jsonRequest.request(viewPendingUrl)
-				.mimeType(HttpContentType.APPLICATION_JSON)
-				.on('beforesend', (request) => {
-					const now = new Date();
-					this.authBuilder.reset().date(now).snDate(true)
-						.method(HttpMethod.GET)
-						.url(viewPendingUrl);
-					request.setRequestHeader(HttpHeaders.X_SN_DATE, this.authBuilder.requestDateHeaderValue);
-					request.setRequestHeader(HttpHeaders.AUTHORIZATION, this.authBuilder.buildWithSavedKey());
-				});
-			q.defer(viewPendingReq.get);
-			if ( this.lastKnownInstruction && InstructionFinishedStates.has(this.lastKnownInstructionState()) ) {
-				// also refresh this specific instruction, to know when it goes to Completed so we can
-				// assume the control value has changed, even if the mostRecent data lags behind
-				const viewInstructionUrl = nodeUrlHelper.viewInstructionsUrl(this.lastKnownInstruction.id);
-				const viewInstructionReq = jsonRequest.request(viewInstructionUrl)
-					.mimeType(HttpContentType.APPLICATION_JSON)
-					.on('beforesend', (request) => {
-						const now = new Date();
-						this.authBuilder.reset().date(now).snDate(true)
-							.method(HttpMethod.GET)
-							.url(viewInstructionUrl);
-						request.setRequestHeader(HttpHeaders.X_SN_DATE, this.authBuilder.requestDateHeaderValue);
-						request.setRequestHeader(HttpHeaders.AUTHORIZATION, this.authBuilder.buildWithSavedKey());
-					});
-				q.defer(viewInstructionReq.get);
-			}
+		// query for pending instructions to see if we have an in-flight SetControlParameter on the go already
+		const viewPendingUrl = instrUrlHelper.viewPendingInstructionsUrl();
+		this.deferJsonRequestWithAuth(q, HttpMethod.GET, viewPendingUrl);
+
+		if ( this.lastKnownInstruction && InstructionFinishedStates.has(this.lastKnownInstructionState()) ) {
+			// also refresh this specific instruction, to know when it goes to Completed so we can
+			// assume the control value has changed, even if the mostRecent data lags behind
+			const viewInstructionUrl = instrUrlHelper.viewInstructionsUrl(this.lastKnownInstruction.id);
+			this.deferJsonRequestWithAuth(q, HttpMethod.GET, viewInstructionUrl);
 		}
-		q.await(function(error, status, active, executing) {
+
+		q.await(function(error, mostRecentDatum, active, executing) {
 			if ( error ) {
-				log.log('Error querying control toggler {0} for {2} status: {1}', controlId, error.status, nodeUrlHelper.nodeId);
+				log.error('Error querying %d control toggler %s status: %s', instrUrlHelper.nodeId, controlId, error.status);
 				this.notifyDelegate(error);
 			} else {
-				// get current status of control
-				var i, len;
-				var controlStatus = undefined;
-				if ( status.data && Array.isArray(status.data.results) ) {
-					for ( i = 0, len = status.data.results.length; i < len && controlStatus === undefined; i++ ) {
-						if ( status.data.results[i].sourceId === controlId ) {
-							controlStatus = status.data.results[i];
-						}
-					}
+				// get current status of control via most recent datum
+				/** @type {ControlDatum} */
+				let mostRecentControlDatum = undefined;
+				if ( mostRecentDatum.data && Array.isArray(mostRecentDatum.data.results) ) {
+					mostRecentControlDatum = mostRecentDatum.data.results.find((e) => e.sourceId === controlId);
 				}
 				
-				// get current instruction (if any)
-				var execInstruction = (executing ? executing.data : undefined);
-				var pendingInstruction = (active ? this.getActiveInstruction(active.data) : undefined);
-				var newValue = (this.mostRecentValue(controlStatus, execInstruction ? execInstruction 
+				// get active (pending) instruction (if any)
+				const execInstruction = (executing ? executing.data : undefined);
+				const pendingInstruction = (active ? this.getActiveInstruction(active.data) : undefined);
+				const newValue = (this.mostRecentValue(mostRecentControlDatum, execInstruction ? execInstruction 
 								: pendingInstruction ? pendingInstruction : this.lastKnownInstruction));
 				var currValue = this.value();
-				if ( (newValue !== currValue) 
-					|| lastHadCredentials !==  secHelper.hasTokenCredentials() ) {
-					log.log('Control {0} for {1} value is currently {2}', controlId, 
-						nodeUrlHelper.nodeId,
-						(newValue !== undefined ? newValue : 'N/A'));
-					lastKnownStatus = controlStatus;
-					if ( lastKnownStatus && !pendingInstruction ) {
-						lastKnownStatus.val = newValue; // force this, because instruction value might be newer than status value
+				if ( newValue !== currValue ) {
+					log.debug('Control %s for %d value is currently %d', controlId, 
+						instrUrlHelper.nodeId, (newValue !== undefined ? newValue : 'N/A'));
+					this.lastKnownStatus = mostRecentControlDatum;
+					if ( this.lastKnownStatus && !pendingInstruction ) {
+						this.lastKnownStatus.val = newValue; // force this, because instruction value might be newer than status value
 					}
-					lastKnownInstruction = (execInstruction ? execInstruction : pendingInstruction);
-					lastHadCredentials = secHelper.hasTokenCredentials();
+					this.lastKnownInstruction = (execInstruction ? execInstruction : pendingInstruction);
 					
 					// invoke the client callback so they know the data has been updated
-					notifyDelegate();
+					this.notifyDelegate();
 				}
 			}
 			
 			// if timer was defined, keep going as if interval set
-			if ( timer !== undefined ) {
-				timer = setTimeout(update, currentRefreshMs());
+			if ( this.timer !== undefined ) {
+				this.timer = setTimeout(this.update, this.currentRefreshMs());
 			}
 		});
 
-		return self;
+		return this;
 	}
 
 	/**
