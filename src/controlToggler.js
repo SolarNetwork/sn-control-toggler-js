@@ -1,4 +1,4 @@
-import { request as jsonRequest } from 'd3-request';
+import { request as xhrRequest } from 'd3-request';
 import { queue } from 'd3-queue';
 import { 
 	AuthorizationV2Builder,
@@ -244,7 +244,7 @@ class ControlToggler {
 	 * <p>If the `url` contains query parameters and the `GET`` request is **not** used,
 	 * the `HttpContentType.FORM_URLENCODED` content type will be assumed.</p>
 	 * 
-	 * @param {jsonRequest} request the XHR
+	 * @param {XMLHttpRequest} request the XHR
 	 * @param {string} method the HTTP method
 	 * @param {string} url the URL
 	 * @param {string} [contentType] a HTTP content type to use
@@ -284,7 +284,7 @@ class ControlToggler {
 			reqData = url.substring(queryIndex + 1);
 			contentType = HttpContentType.FORM_URLENCODED;
 		}
-		const req = jsonRequest(queryIndex >= 0 ? url.substring(0, queryIndex) : url)
+		const req = xhrRequest(queryIndex >= 0 ? url.substring(0, queryIndex) : url)
 			.mimeType(HttpContentType.APPLICATION_JSON)
 			.on('beforesend', (request) => {
 				this.handleRequestAuth(request, method, url, contentType);
