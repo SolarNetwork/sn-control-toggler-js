@@ -45,6 +45,9 @@ test.beforeEach(t => {
 test('construct', t => {
     const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
     t.truthy(toggler);
+    t.truthy(toggler.queryUrlHelper, 'query UrlHelper created');
+    t.is(toggler.queryUrlHelper.nodeId, TEST_NODE_ID, 'node ID assigned');
+    t.is(toggler.queryUrlHelper.sourceId, TEST_CONTROL_ID, 'source ID assigned');
 });
 
 test.serial('setValue', t => {
@@ -58,6 +61,7 @@ test.serial('setValue', t => {
     t.is(reqs.length, 1);
 
     const queueReq = reqs[0];
+    t.is(queueReq.method, 'POST');
     t.is(queueReq.url, "https://localhost/solaruser/api/v1/sec/instr/add");
     t.is(queueReq.requestBody, 'nodeId=123&topic=SetControlParameter&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1');
     t.deepEqual(queueReq.requestHeaders, {
@@ -67,9 +71,17 @@ test.serial('setValue', t => {
     });
     queueReq.respond(200, { "Content-Type": "application/json" }, 
         '{"success":true,"data":' 
-        +'{"totalResults": 1, "startingOffset": 0, "returnedResultCount": 1, "results": ['
-            +'{"created": "2017-07-26 05:57:49.608Z","nodeId":123,"sourceId":"test-control","val":1}'
-        +']}}');
+        +'{"id": 12345,"created": "2015-02-26 21:00:00.000Z","topic": "SetControlParameter","state": "Queued","parameters": [{"name": "test-control","value": "1"}]}'
+        +'}');
+    t.deepEqual(toggler.lastKnownInstruction, {
+        id: 12345,
+        created: "2015-02-26 21:00:00.000Z",
+        topic: "SetControlParameter",
+        state: "Queued",
+        parameters: [
+            {"name": "test-control","value": "1"}
+        ]
+    });
 });
 
 test.serial('setValue:alreadyPending', t => {
@@ -114,6 +126,7 @@ test.serial('setValue:differentPending', t => {
     t.is(reqs.length, 2, 'need to issue cancel request, followed by enqueue');
 
     const cancelReq = reqs[0];
+    t.is(cancelReq.method, 'POST');
     t.is(cancelReq.url, 'https://localhost/solaruser/api/v1/sec/instr/updateState');
     t.is(cancelReq.requestBody, 'id=12345&state=Declined');
     t.deepEqual(cancelReq.requestHeaders, {
@@ -127,6 +140,7 @@ test.serial('setValue:differentPending', t => {
     t.is(toggler.lastKnownInstruction, undefined, 'the last instruction has been cancelled');
 
     const queueReq = reqs[1];
+    t.is(queueReq.method, 'POST');
     t.is(queueReq.url, "https://localhost/solaruser/api/v1/sec/instr/add");
     t.is(queueReq.requestBody, 'nodeId=123&topic=SetControlParameter&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1');
     t.deepEqual(queueReq.requestHeaders, {
@@ -139,4 +153,48 @@ test.serial('setValue:differentPending', t => {
         +'{"totalResults": 1, "startingOffset": 0, "returnedResultCount": 1, "results": ['
             +'{"created": "2017-07-26 05:57:49.608Z","nodeId":123,"sourceId":"test-control","val":1}'
         +']}}');
+});
+
+test.serial('update', t => {
+    const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
+
+    /** @type {sinon.SinonFakeXMLHttpRequest[]} */
+    const reqs = t.context.requests;
+
+    toggler.update();
+
+    t.is(reqs.length, 2, 'get most recent datum and view pending instructions');
+
+    const datumReq = reqs[0];
+    t.is(datumReq.method, 'GET');
+    t.is(datumReq.url, "https://localhost/solarquery/api/v1/sec/datum/mostRecent?nodeId=123&sourceId=test-control");
+    t.deepEqual(datumReq.requestHeaders, {
+        'Accept':'application/json',
+        'X-SN-Date':TEST_DATE_STR,
+        'Authorization':'SNWS2 Credential=test-token,SignedHeaders=host;x-sn-date,Signature=a68ae1d9b9343a000d615c861faa8f03d1913b8fc2a1895faa9f7ab93c386bb5',
+    });
+    datumReq.respond(200, { "Content-Type": "application/json" }, 
+        '{"success":true,"data":' 
+        +'{"totalResults": 1, "startingOffset": 0, "returnedResultCount": 1, "results": ['
+            +'{"created": "2017-07-26 05:57:49.608Z","nodeId":123,"sourceId":"test-control","val":1}'
+        +']}}');
+
+    const pendingReq = reqs[1];
+    t.is(pendingReq.method, 'GET');
+    t.is(pendingReq.url, 'https://localhost/solaruser/api/v1/sec/instr/viewPending?nodeId=123');
+    t.deepEqual(pendingReq.requestHeaders, {
+        'Accept':'application/json',
+        'X-SN-Date':TEST_DATE_STR,
+        'Authorization':'SNWS2 Credential=test-token,SignedHeaders=host;x-sn-date,Signature=e44457f0dc787fdf7b18620ca934312578db21d4e8f9ac3511baaaf246d22983',
+    });
+    pendingReq.respond(200, { "Content-Type": "application/json" }, 
+        '{"success":true,"data":[]}'); // nothing pending
+
+    t.deepEqual(toggler.lastKnownDatum, {
+        created: "2017-07-26 05:57:49.608Z",
+        nodeId: 123,
+        sourceId: "test-control",
+        val: 1
+    });
+
 });

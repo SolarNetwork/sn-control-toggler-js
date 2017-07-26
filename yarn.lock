@@ -3747,7 +3747,7 @@ sntp@1.x.x:
 
 solarnetwork-api-core@SolarNetwork/sn-api-core-js#develop:
   version "0.5.3-dev.0"
-  resolved "https://codeload.github.com/SolarNetwork/sn-api-core-js/tar.gz/c7208d46445e07f1fbcfc5d9b83872c48eb86a76"
+  resolved "https://codeload.github.com/SolarNetwork/sn-api-core-js/tar.gz/ce04411c7891121743459e61703a05978f116edb"
   dependencies:
     crypto-js "^3.1.9-1"
     d3-time-format "^2.0.5"

@@ -99,6 +99,10 @@ class ControlToggler {
 		 */
 		this.queryUrlHelper = (queryUrlHelper || new NodeDatumUrlHelper(urlHelper.environment));
 
+		// force the nodeId / sourceId to our controlId
+		this.queryUrlHelper.nodeId = urlHelper.nodeId;
+		this.queryUrlHelper.sourceId = controlId;
+
         /**
          * A timer ID for refreshing the local state.
          * @type {number}
@@ -379,11 +383,9 @@ class ControlToggler {
 		const instrUrlHelper = this.instructionUrlHelper;
 		const queryUrlHelper = this.queryUrlHelper;
 		const q = queue();
-		const controlFilter = new DatumFilter();
-		controlFilter.sourceId = controlId;
 
 		// query for most recently available datum for control to check control value
-		const mostRecentUrl = queryUrlHelper.mostRecentDatumUrl(controlFilter);
+		const mostRecentUrl = queryUrlHelper.mostRecentDatumUrl();
 		this.deferJsonRequestWithAuth(q, HttpMethod.GET, mostRecentUrl);
 
 		// query for pending instructions to see if we have an in-flight SetControlParameter on the go already
@@ -397,11 +399,26 @@ class ControlToggler {
 			this.deferJsonRequestWithAuth(q, HttpMethod.GET, viewInstructionUrl);
 		}
 
-		q.await(function(error, mostRecentDatum, active, executing) {
+		q.awaitAll((error, results) => {
 			if ( error ) {
 				log.error('Error querying %d control toggler %s status: %s', instrUrlHelper.nodeId, controlId, error.status);
 				this.notifyDelegate(error);
 			} else {
+				results.forEach((e, i) => {
+					if ( e.responseText ) {
+						results[i] = JSON.parse(e.responseText);
+					}
+				});
+				let mostRecentDatum, active, executing;
+				if ( results.length > 0 ) {
+					mostRecentDatum = results[0];
+				}
+				if ( results.length > 1 ) {
+					active = results[1];
+				}
+				if ( results.length > 2 ) {
+					executing = results[2];
+				}
 				// get current status of control via most recent datum
 				/** @type {ControlDatum} */
 				let mostRecentControlDatum = undefined;
@@ -414,10 +431,9 @@ class ControlToggler {
 				const pendingInstruction = (active ? this.getActiveInstruction(active.data) : undefined);
 				const newValue = (this.mostRecentValue(mostRecentControlDatum, execInstruction ? execInstruction 
 								: pendingInstruction ? pendingInstruction : this.lastKnownInstruction));
-				var currValue = this.value();
+				const currValue = this.value();
 				if ( newValue !== currValue ) {
-					log.debug('Control %s for %d value is currently %d', controlId, 
-						instrUrlHelper.nodeId, (newValue !== undefined ? newValue : 'N/A'));
+					log.debug('Current %d control %s value is %s',  instrUrlHelper.nodeId, controlId, (newValue !== undefined ? newValue : 'N/A'));
 					this.lastKnownDatum = mostRecentControlDatum;
 					if ( this.lastKnownDatum && !pendingInstruction ) {
 						this.lastKnownDatum.val = newValue; // force this, because instruction value might be newer than status value
