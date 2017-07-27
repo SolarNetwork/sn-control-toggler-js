@@ -285,6 +285,7 @@ test.serial('start', async t => {
     const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
 
     toggler.start(10);
+    t.truthy(toggler.timer, 'update timer set');
     await timeout(15);
 
     /** @type {sinon.SinonFakeXMLHttpRequest[]} */
