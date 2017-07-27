@@ -325,3 +325,13 @@ test.serial('start', async t => {
         val: 1
     });
 });
+
+test.serial('stop', async t => {
+    const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
+
+    toggler.start(10);
+    t.truthy(toggler.timer, 'update timer set');
+
+    toggler.stop();
+    t.falsy(toggler.timer, 'update timer cleared');
+});
