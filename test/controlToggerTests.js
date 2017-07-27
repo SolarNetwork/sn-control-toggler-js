@@ -326,7 +326,7 @@ test.serial('start', async t => {
     });
 });
 
-test.serial('stop', async t => {
+test.serial('stop', t => {
     const toggler = new ControlTogger(t.context.urlHelper, t.context.auth, TEST_CONTROL_ID);
 
     toggler.start(10);
