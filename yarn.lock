@@ -3753,6 +3753,13 @@ solarnetwork-api-core@SolarNetwork/sn-api-core-js#develop:
     d3-time-format "^2.0.5"
     uri-js "^3.0.2"
 
+solarnetwork-test-utils@SolarNetwork/sn-test-utils-js:
+  version "0.0.1-dev.0"
+  resolved "https://codeload.github.com/SolarNetwork/sn-test-utils-js/tar.gz/55c8a2f386fd3c30d30052ea7b3959de4d707eb7"
+  dependencies:
+    d3-request "^1.0.5"
+    solarnetwork-api-core SolarNetwork/sn-api-core-js#develop
+
 sort-keys@^1.1.1:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/sort-keys/-/sort-keys-1.1.2.tgz#441b6d4d346798f1b4e49e8920adfba0e543f9ad"

@@ -5,9 +5,10 @@ import {
     logLevels,
     NodeInstructionUrlHelper,
 } from 'solarnetwork-api-core';
-
-import TestAuthBuilder from './_testAuthBuilder';
-import reqMock from './_d3requestMock';
+import { 
+    TestAuthorizationV2Builder as TestAuthBuilder,
+    testRequest
+} from 'solarnetwork-test-utils';
 
 import ControlTogger from '../src/controlToggler';
 
@@ -23,7 +24,7 @@ const TEST_DATE = new Date(TEST_DATE_STR);
 
 test.beforeEach(t => {
     const xhr = sinon.useFakeXMLHttpRequest();
-    ControlTogger.__Rewire__('xhrRequest', reqMock(xhr));
+    ControlTogger.__Rewire__('xhrRequest', testRequest(xhr).request);
     t.context.xhr = xhr;
 
     const requests = [];
