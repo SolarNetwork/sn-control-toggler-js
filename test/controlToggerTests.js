@@ -1,4 +1,4 @@
-import {test,todo} from 'ava';
+import test from 'ava';
 import sinon from 'sinon';
 import {
     Logger as log,
