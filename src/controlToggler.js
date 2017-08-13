@@ -58,6 +58,31 @@ const InstructionFinishedStates = new Set([
 
 /**
  * Manage the state of a boolean control switch using SolarNetwork `SetControlParameter` instructions.
+ * 
+ * Use an instance of this class to keep track of, and update the state of, a single switch-like
+ * control configured on a SolarNode. Because updating the state of a control is an asynchronous 
+ * process involving multiple steps, this class simplifies this with a simple callback API that
+ * will be invoked whenever the control state changes.
+ * 
+ * @example
+ * const urlHelper = new NodeInstructionUrlHelper();
+ * urlHelper.nodeId = 123;
+ * 
+ * const auth = new TestAuthBuilder('token');
+ * auth.saveSigningKey('secret');
+ * 
+ * const toggler = new ControlTogger(urlHelper, auth, '/power/switch/1');
+ * toggler.callback = function(error) {
+ *   // invoked when instruction states change, or the control value changes
+ *   console.log(`Control ${toggler.controlId} value == ${toggler.value()}; instruction state == ${toggler.lastKnownInstructionState()}`);
+ * };
+ * 
+ * // enable automatic keeping track of state and the callback hook
+ * toggler.start();
+ * 
+ * // ... at some point later, maybe in response to a UI event, update the state;
+ * // the callback will be invoked then the value changes
+ * toggler.value(1);
  */
 class ControlToggler {
     /**
