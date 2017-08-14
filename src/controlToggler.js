@@ -491,7 +491,7 @@ class ControlToggler {
 				const newValue = (this.mostRecentValue(mostRecentControlDatum, execInstruction ? execInstruction 
 								: pendingInstruction ? pendingInstruction : this.lastKnownInstruction));
 				const currValue = this.value();
-				if ( newValue !== currValue ) {
+				if ( newValue !== currValue || execInstruction ) {
 					log.debug('Current %d control %s value is %s',  instrUrlHelper.nodeId, controlId, (newValue !== undefined ? newValue : 'N/A'));
 					this.lastKnownDatum = mostRecentControlDatum;
 					if ( this.lastKnownDatum && !pendingInstruction ) {
