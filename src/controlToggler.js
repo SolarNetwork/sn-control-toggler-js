@@ -239,8 +239,8 @@ class ControlToggler {
      */
 	currentRefreshMs() {
         return (InstructionActiveStates.has(this.lastKnownInstructionState())
-			? this.refreshMs
-			: this.pendingRefreshMs);
+			? this.pendingRefreshMs
+			: this.refreshMs);
 	}
 	
 	/**
