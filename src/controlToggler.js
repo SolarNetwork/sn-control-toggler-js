@@ -74,7 +74,7 @@ const InstructionFinishedStates = new Set([
  * const toggler = new ControlTogger(urlHelper, auth, '/power/switch/1');
  * toggler.callback = function(error) {
  *   // invoked when instruction states change, or the control value changes
- *   console.log(`Control ${toggler.controlId} value == ${toggler.value()}; instruction state == ${toggler.lastKnownInstructionState()}`);
+ *   console.log(`Control ${toggler.controlId} value == ${toggler.value()}; pending == ${toggler.hasPendingStateChange}`);
  * };
  * 
  * // enable automatic keeping track of state and the callback hook
@@ -238,9 +238,18 @@ class ControlToggler {
      * @private
      */
 	currentRefreshMs() {
-        return (InstructionActiveStates.has(this.lastKnownInstructionState())
+        return (self.hasPendingStateChange
 			? this.pendingRefreshMs
 			: this.refreshMs);
+	}
+
+	/**
+	 * Test if a state change is pending confirmation.
+	 * 
+	 * @returns {boolean} `true` if a state change is pending (not complete)
+	 */
+	get hasPendingStateChange() {
+		return InstructionActiveStates.has(this.lastKnownInstructionState());
 	}
 	
 	/**
