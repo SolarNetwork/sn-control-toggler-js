@@ -428,6 +428,10 @@ class ControlToggler {
 	
     /**
      * Refresh the control state from SolarNetwork.
+	 * 
+	 * Once the {@link ControlToggler#start} method is called, this method is invoked periodically
+	 * automatically. Only call this directly if you need to manually update the state of the control.
+	 * 
      * @returns {ControlToggler} this object
      */
 	update() {
