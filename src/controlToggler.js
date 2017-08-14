@@ -57,12 +57,30 @@ const InstructionFinishedStates = new Set([
   */
 
 /**
+ * The status callback function.
+ * 
+ * This function will be invoked whenever the control value has changed. Additionally, it will be
+ * invoked periodically while a state change has not been completed, even if the control value
+ * has not changed. Use {@link ControlToggler#value} to get the current control value and 
+ * {@link ControlToggler#hasPendingStateChange} to test if that value is still pending.
+ * 
+ * @callback ControlToggler~statusCallback
+ * @this ControlToggler
+ * @param {Error} [error] an error if a failure occurred
+ */
+
+/**
  * Manage the state of a boolean control switch using SolarNetwork `SetControlParameter` instructions.
  * 
  * Use an instance of this class to keep track of, and update the state of, a single switch-like
  * control configured on a SolarNode. Because updating the state of a control is an asynchronous 
  * process involving multiple steps, this class simplifies this with a simple callback API that
- * will be invoked whenever the control state changes.
+ * will be invoked whenever the control value changes.
+ * 
+ * Once the {@link ControlToggler#start} method has been called, the toggler will make periodic
+ * calls to SolarNetwork to get the most recent value for the configured control ID, which it
+ * treats as a {@link ControlDatum} `sourceId` value. Thus if some other process changes the
+ * control, the toggler will eventually pick up that change and invoke the callback function.
  * 
  * @example
  * const urlHelper = new NodeInstructionUrlHelper();
