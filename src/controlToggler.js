@@ -91,7 +91,7 @@ class ControlToggler {
      *                    and be configured with the `nodeId` property for the node to be managed
 	 * @param {AuthorizationV2Builder} authBuilder the auth builder to authenticate requests with; the required credentials
 	 *                                             must be set appropriately
-     * @param {string} [controlId=/power/switch/1] the ID of the control to manage
+     * @param {string} controlId the ID of the control to manage
 	 * @param {NodeDatumUrlHelper} [queryUrlHelper] a URL helper for accessing node datum via SolarQuery; if not provided one
 	 *                                              will be created using the `environment` from `urlHelper`
      */
