@@ -3745,20 +3745,20 @@ sntp@1.x.x:
   dependencies:
     hoek "2.x.x"
 
-solarnetwork-api-core@SolarNetwork/sn-api-core-js#develop:
-  version "0.5.3-dev.0"
-  resolved "https://codeload.github.com/SolarNetwork/sn-api-core-js/tar.gz/ce04411c7891121743459e61703a05978f116edb"
+solarnetwork-api-core@0.6:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/solarnetwork-api-core/-/solarnetwork-api-core-0.6.0.tgz#49a0a65aaf6050785346ed1bb15016aab6c50138"
   dependencies:
     crypto-js "^3.1.9-1"
     d3-time-format "^2.0.5"
     uri-js "^3.0.2"
 
-solarnetwork-test-utils@SolarNetwork/sn-test-utils-js:
-  version "0.0.1-dev.0"
-  resolved "https://codeload.github.com/SolarNetwork/sn-test-utils-js/tar.gz/55c8a2f386fd3c30d30052ea7b3959de4d707eb7"
+solarnetwork-test-utils@0.1:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/solarnetwork-test-utils/-/solarnetwork-test-utils-0.1.0.tgz#c92c037f6f68faf1412140e23e77a015a72a043a"
   dependencies:
     d3-request "^1.0.5"
-    solarnetwork-api-core SolarNetwork/sn-api-core-js#develop
+    solarnetwork-api-core "0.6"
 
 sort-keys@^1.1.1:
   version "1.1.2"
