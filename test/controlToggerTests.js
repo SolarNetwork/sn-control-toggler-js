@@ -67,6 +67,7 @@ test.serial('setValue', t => {
     t.is(queueReq.requestBody, 'nodeId=123&topic=SetControlParameter&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1');
     t.deepEqual(queueReq.requestHeaders, {
         'Accept':'application/json',
+        'content-type':'application/x-www-form-urlencoded;charset=utf-8',
         'X-SN-Date':TEST_DATE_STR,
         'Authorization':'SNWS2 Credential=test-token,SignedHeaders=content-type;host;x-sn-date,Signature=0e3806a471d5367b7e2ab914a85dbc3d1229c8eb37c4e41fbe10f2ec02902792',
     });
@@ -134,6 +135,7 @@ test.serial('setValue:differentPending', t => {
     t.is(cancelReq.requestBody, 'id=12345&state=Declined');
     t.deepEqual(cancelReq.requestHeaders, {
         'Accept':'application/json',
+        'content-type':'application/x-www-form-urlencoded;charset=utf-8',
         'X-SN-Date':TEST_DATE_STR,
         'Authorization':'SNWS2 Credential=test-token,SignedHeaders=content-type;host;x-sn-date,Signature=64f5b222d6ed4d80f2c2d9b92a81915e871cc39377b3ba8ddeca88c2a902c10b',
     });
@@ -148,6 +150,7 @@ test.serial('setValue:differentPending', t => {
     t.is(queueReq.requestBody, 'nodeId=123&topic=SetControlParameter&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1');
     t.deepEqual(queueReq.requestHeaders, {
         'Accept':'application/json',
+        'content-type':'application/x-www-form-urlencoded;charset=utf-8',
         'X-SN-Date':TEST_DATE_STR,
         'Authorization':'SNWS2 Credential=test-token,SignedHeaders=content-type;host;x-sn-date,Signature=0e3806a471d5367b7e2ab914a85dbc3d1229c8eb37c4e41fbe10f2ec02902792',
     });

@@ -90,7 +90,7 @@
     "rollup-plugin-includepaths": "^0.2.2",
     "semver": "^5.3.0",
     "sinon": "^2.3.8",
-    "solarnetwork-test-utils": "0.1",
+    "solarnetwork-test-utils": "0.2",
     "uglify-es": "^3.0.25"
   },
   "dependencies": {

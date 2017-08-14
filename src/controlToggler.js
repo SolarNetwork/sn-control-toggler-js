@@ -238,7 +238,7 @@ class ControlToggler {
      * @private
      */
 	currentRefreshMs() {
-        return (self.hasPendingStateChange
+        return (this.hasPendingStateChange
 			? this.pendingRefreshMs
 			: this.refreshMs);
 	}
@@ -327,6 +327,9 @@ class ControlToggler {
 			.on('beforesend', (request) => {
 				this.handleRequestAuth(request, method, url, contentType);
 			});
+		if ( contentType ) {
+			req.header('Content-Type', contentType);
+		}
 		q.defer(req.send, method, reqData);
 		return this;
 	}
