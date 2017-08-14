@@ -13,7 +13,7 @@
     "templates": {
         "cleverLinks": true,
         "monospaceLinks": false,
-        "systemName": "SolarNetwork SSH",
+        "systemName": "SolarNetwork Control Toggler",
         "theme": "spacelab",
         "linenums": true
     }

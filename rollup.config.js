@@ -10,9 +10,11 @@ const includePathOptions = {
 
 export default {
   external: id => {
-    return /solarnetwork-api-core/.test(id);
+    return /(d3-|solarnetwork-api-)/.test(id);
   },
   globals: {
+    'd3-queue': 'd3',
+    'd3-request': 'd3',
     'solarnetwork-api-core': 'sn',
   },
   plugins: [

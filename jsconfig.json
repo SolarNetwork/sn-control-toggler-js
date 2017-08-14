@@ -1,11 +1,14 @@
 {
 	"compilerOptions": {
-        "target": "esnext",
+        "allowSyntheticDefaultImports": true,
+        "target": "es6",
         "module": "es6",
-        "baseUrl": "src/"
+        "baseUrl": "src/",
+        "paths": {
+            "solarnetwork-api-core" : ["../node_modules/solarnetwork-api-core/lib.js"]
+        }
     },
-    "exclude": [
-        "build",
-        "node_modules"
+    "include": [
+        "src/**/*"
     ]
 }
