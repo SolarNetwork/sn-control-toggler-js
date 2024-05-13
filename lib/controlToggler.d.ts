@@ -1,5 +1,13 @@
-import { InstructionInfo } from "solarnetwork-api-core/lib/domain/index.js";
+import { Datum, DatumInfo, InstructionInfo } from "solarnetwork-api-core/lib/domain/index.js";
 import { AuthorizationV2Builder, SolarQueryApi, SolarUserApi } from "solarnetwork-api-core/lib/net/index.js";
+/**
+ * Extension to Datum class with a specific `val` number property.
+ */
+export declare class ControlDatum extends Datum {
+    /** The control value. */
+    val?: number;
+    constructor(info: DatumInfo);
+}
 /**
  * The data callback function.
  */
