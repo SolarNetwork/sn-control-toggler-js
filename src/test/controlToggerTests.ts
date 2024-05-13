@@ -51,9 +51,16 @@ test.beforeEach((t) => {
 
 function createToggler(
 	api: SolarUserApi,
-	auth: AuthorizationV2Builder
+	auth: AuthorizationV2Builder,
+	queryApi?: SolarQueryApi
 ): ControlTogger {
-	return new ControlTogger(api, auth, TEST_NODE_ID, TEST_CONTROL_ID);
+	return new ControlTogger(
+		api,
+		auth,
+		TEST_NODE_ID,
+		TEST_CONTROL_ID,
+		queryApi
+	);
 }
 
 test("construct", (t) => {
@@ -362,6 +369,7 @@ test.serial("update:invalidCredentials", async (t) => {
 	// THEN
 	t.is(error.message, "Valid credentials not configured");
 });
+
 test.serial("update", async (t) => {
 	// GIVEN
 	const http = t.context.agent.get("http://localhost");
@@ -410,6 +418,81 @@ test.serial("update", async (t) => {
 
 	// WHEN
 	const toggler = createToggler(t.context.api, t.context.auth);
+	toggler.callback = callback;
+	const result = await toggler.update();
+
+	t.false(toggler.hasPendingStateChange, "no pending change");
+	t.is(
+		result,
+		results[0][0].val,
+		"resolved value is from most recent response"
+	);
+	t.is(
+		toggler.value(),
+		results[0][0].val,
+		"current value is from most recent response"
+	);
+	t.deepEqual(callbackValues, [results[0][0].val], "callback invoked");
+});
+
+test.serial("update:alternateQueryApi", async (t) => {
+	// GIVEN
+	const httpQuery = t.context.agent.get("http://query.local");
+	const results = [
+		[
+			{
+				created: "2017-07-26 05:57:49.608Z",
+				nodeId: 123,
+				sourceId: "test-control",
+				val: 3,
+			},
+		],
+	];
+
+	// first query for most-recent value
+	httpQuery
+		.intercept({
+			path: "/solarquery/api/v1/sec/datum/mostRecent?nodeId=123&sourceId=test-control",
+			method: "GET",
+			headers: {
+				accept: "application/json",
+				authorization: AUTH_GET_REGEX,
+			},
+		})
+		.reply(200, {
+			success: true,
+			data: results[0],
+		});
+
+	// then view pending instructions
+	const httpUser = t.context.agent.get("http://user.local");
+	httpUser
+		.intercept({
+			path: "/solaruser/api/v1/sec/instr/viewPending?nodeId=123",
+			method: "GET",
+			headers: {
+				accept: "application/json",
+				authorization: AUTH_GET_REGEX,
+			},
+		})
+		.reply(200, {
+			success: true,
+			data: [],
+		});
+
+	const callbackValues: Array<number | undefined> = [];
+	const callback: ControlCallbackFn = function (error) {
+		t.falsy(error, "no error reported");
+		callbackValues.push(this.value());
+	};
+
+	// WHEN
+	const userApi = new SolarUserApi(new URL("http://user.local"));
+	const userAuth = new AuthorizationV2Builder(TEST_TOKEN_ID).saveSigningKey(
+		TEST_TOKEN_SECRET
+	);
+	const queryApi = new SolarQueryApi(new URL("http://query.local"));
+	const toggler = createToggler(userApi, userAuth, queryApi);
 	toggler.callback = callback;
 	const result = await toggler.update();
 
