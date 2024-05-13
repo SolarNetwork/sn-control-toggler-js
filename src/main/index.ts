@@ -1,5 +1,6 @@
 import {
+	ControlDatum,
 	default as ControlToggler,
 	ControlCallbackFn,
 } from "./controlToggler.js";
-export { ControlToggler, type ControlCallbackFn };
+export { ControlDatum, ControlToggler, type ControlCallbackFn };

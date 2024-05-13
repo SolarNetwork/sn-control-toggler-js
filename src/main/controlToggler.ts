@@ -39,7 +39,11 @@ const InstructionFinishedStates = new Set<InstructionState>([
 	InstructionStates.Declined,
 ]);
 
-class ControlDatum extends Datum {
+/**
+ * Extension to Datum class with a specific `val` number property.
+ */
+export class ControlDatum extends Datum {
+	/** The control value. */
 	val?: number;
 	constructor(info: DatumInfo) {
 		super(info);
