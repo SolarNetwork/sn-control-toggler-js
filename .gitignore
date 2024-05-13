@@ -6,7 +6,6 @@
 build
 coverage
 docs/api
-docs/html
 lib/test
 node_modules
 npm-debug.log
