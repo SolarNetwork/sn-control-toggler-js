@@ -3,6 +3,7 @@ import {
 	Datum,
 	DatumFilter,
 	DatumInfo,
+	FilterResults,
 	Instruction,
 	InstructionInfo,
 	InstructionState,
@@ -497,7 +498,7 @@ class ControlToggler {
 		}
 
 		const reqs: [
-			Promise<DatumInfo[]>,
+			Promise<FilterResults<DatumInfo>>,
 			Promise<InstructionInfo[]>,
 			Promise<InstructionInfo>,
 		] = [] as any;
@@ -507,7 +508,7 @@ class ControlToggler {
 		filter.nodeId = this.nodeId;
 		filter.sourceId = this.controlId;
 		const mostRecentUrl = this.#queryApi.mostRecentDatumUrl(filter);
-		reqs[0] = this.#fetch<DatumInfo[]>(
+		reqs[0] = this.#fetch<FilterResults<DatumInfo>>(
 			HttpMethod.GET,
 			mostRecentUrl,
 			this.#queryAuth
@@ -542,7 +543,7 @@ class ControlToggler {
 
 		return Promise.all(reqs)
 			.then((results): number | undefined => {
-				const mostRecentList = results[0];
+				const mostRecentList: DatumInfo[] = results[0].results;
 				const pendingInstruction = this.#getActiveInstruction(
 					results[1]
 				);
