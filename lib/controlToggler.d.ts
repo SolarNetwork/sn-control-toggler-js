@@ -80,7 +80,8 @@ declare class ControlToggler {
      * @param nodeId the ID of the node with the control to manage
      * @param controlId the ID of the control to manage
      * @param queryApi a URL helper for accessing node datum via SolarQuery; if not provided one
-     *                 will be created using the environment from `api`
+     *                 will be created using the environment from `api`. Useful in a development
+     *                 environment when the SolarUser and SolarQuery hosts are different.
      */
     constructor(api: SolarUserApi, auth: AuthorizationV2Builder, nodeId: number, controlId: string, queryApi?: SolarQueryApi);
     /**

@@ -1,6 +1,6 @@
 {
   "name": "solarnetwork-control-toggler",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "SolarNetwork Control Toggler",
   "keywords": [
     "solarnetwork"
@@ -83,7 +83,7 @@
     "prettier:write": "prettier --config .prettierrc.json \"src/**/*.ts\" --write"
   },
   "dependencies": {
-    "solarnetwork-api-core": "^2.2.0"
+    "solarnetwork-api-core": "^2.2.2"
   },
   "devDependencies": {
     "@ava/typescript": "^5.0.0",
