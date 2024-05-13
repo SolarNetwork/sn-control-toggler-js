@@ -12,7 +12,10 @@ import {
 	SolarUserApi,
 } from "solarnetwork-api-core/lib/net/index.js";
 
-import ControlTogger, { ControlCallbackFn } from "../main/controlToggler.js";
+import ControlTogger, {
+	ControlCallbackFn,
+	type ControlValueType,
+} from "../main/controlToggler.js";
 
 const test = anyTest as TestFn<{
 	agent: MockAgent;
@@ -79,6 +82,47 @@ test.serial("setValue", async (t) => {
 		created: "2015-02-26 21:00:00.000Z",
 		topic: "SetControlParameter",
 		state: "Queued",
+		parameters: [{ name: "test-control", value: "1" }],
+	};
+	http.intercept({
+		path: "/solaruser/api/v1/sec/instr/add/SetControlParameter",
+		method: "POST",
+		body: "nodeId=123&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1",
+		headers: {
+			accept: "application/json",
+			"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+			authorization: AUTH_POST_REGEX,
+		},
+	}).reply(200, {
+		success: true,
+		data: result,
+	});
+
+	// WHEN
+	const toggler = createToggler(t.context.api, t.context.auth);
+	const info = await toggler.value(1);
+
+	// THEN
+	t.deepEqual(
+		info,
+		result,
+		"set value promise resolves to instruction add response"
+	);
+	t.is(
+		toggler.hasPendingStateChange,
+		true,
+		"pending instruction confirmation"
+	);
+});
+
+test.serial("setValue:queuing", async (t) => {
+	// GIVEN
+	const http = t.context.agent.get("http://localhost");
+	const result = {
+		id: 12345,
+		created: "2015-02-26 21:00:00.000Z",
+		topic: "SetControlParameter",
+		state: "Queuing",
 		parameters: [{ name: "test-control", value: "1" }],
 	};
 	http.intercept({
@@ -242,7 +286,7 @@ test.serial("setValue:alreadyPending", async (t) => {
 		data: result,
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -374,14 +418,19 @@ test.serial("update", async (t) => {
 	// GIVEN
 	const http = t.context.agent.get("http://localhost");
 	const results = [
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 3,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 3,
+				},
+			],
+		},
 	];
 
 	// first query for most-recent value
@@ -410,7 +459,7 @@ test.serial("update", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -424,29 +473,38 @@ test.serial("update", async (t) => {
 	t.false(toggler.hasPendingStateChange, "no pending change");
 	t.is(
 		result,
-		results[0][0].val,
+		results[0].results[0].val,
 		"resolved value is from most recent response"
 	);
 	t.is(
 		toggler.value(),
-		results[0][0].val,
+		results[0].results[0].val,
 		"current value is from most recent response"
 	);
-	t.deepEqual(callbackValues, [results[0][0].val], "callback invoked");
+	t.deepEqual(
+		callbackValues,
+		[results[0].results[0].val],
+		"callback invoked"
+	);
 });
 
 test.serial("update:alternateQueryApi", async (t) => {
 	// GIVEN
 	const httpQuery = t.context.agent.get("http://query.local");
 	const results = [
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 3,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 3,
+				},
+			],
+		},
 	];
 
 	// first query for most-recent value
@@ -480,7 +538,7 @@ test.serial("update:alternateQueryApi", async (t) => {
 			data: [],
 		});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -499,29 +557,38 @@ test.serial("update:alternateQueryApi", async (t) => {
 	t.false(toggler.hasPendingStateChange, "no pending change");
 	t.is(
 		result,
-		results[0][0].val,
+		results[0].results[0].val,
 		"resolved value is from most recent response"
 	);
 	t.is(
 		toggler.value(),
-		results[0][0].val,
+		results[0].results[0].val,
 		"current value is from most recent response"
 	);
-	t.deepEqual(callbackValues, [results[0][0].val], "callback invoked");
+	t.deepEqual(
+		callbackValues,
+		[results[0].results[0].val],
+		"callback invoked"
+	);
 });
 
 test.serial("update:callbackThrowsError", async (t) => {
 	// GIVEN
 	const http = t.context.agent.get("http://localhost");
 	const results = [
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 3,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 3,
+				},
+			],
+		},
 	];
 
 	// first query for most-recent value
@@ -550,7 +617,7 @@ test.serial("update:callbackThrowsError", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -565,15 +632,19 @@ test.serial("update:callbackThrowsError", async (t) => {
 	t.false(toggler.hasPendingStateChange, "no pending change");
 	t.is(
 		result,
-		results[0][0].val,
+		results[0].results[0].val,
 		"resolved value is from most recent response"
 	);
 	t.is(
 		toggler.value(),
-		results[0][0].val,
+		results[0].results[0].val,
 		"current value is from most recent response"
 	);
-	t.deepEqual(callbackValues, [results[0][0].val], "callback invoked");
+	t.deepEqual(
+		callbackValues,
+		[results[0].results[0].val],
+		"callback invoked"
+	);
 });
 
 test.serial("update:noPendingLastKnownQueued", async (t) => {
@@ -589,14 +660,19 @@ test.serial("update:noPendingLastKnownQueued", async (t) => {
 			parameters: [{ name: "test-control", value: "1" }],
 		},
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view instruction; now complted and updated to 1
 		{
 			id: 12345,
@@ -661,7 +737,7 @@ test.serial("update:noPendingLastKnownQueued", async (t) => {
 		data: results[2],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		if (callbackValues.length == 0) {
@@ -690,9 +766,9 @@ test.serial("update:noPendingLastKnownQueued", async (t) => {
 
 	// THEN
 	t.false(toggler.hasPendingStateChange, "no pending change");
-	t.is(result, 1, "resolved value is from updated instruction");
-	t.is(toggler.value(), 1, "current value is from updated instruction");
-	t.deepEqual(callbackValues, [undefined, 1], "callback invoked");
+	t.is(result, "1", "resolved value is from updated instruction");
+	t.is(toggler.value(), "1", "current value is from updated instruction");
+	t.deepEqual(callbackValues, [undefined, "1"], "callback invoked");
 });
 
 test.serial("update:activePending", async (t) => {
@@ -700,14 +776,19 @@ test.serial("update:activePending", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view pending
 		[
 			{
@@ -746,7 +827,7 @@ test.serial("update:activePending", async (t) => {
 		data: results[1],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		if (callbackValues.length == 0) {
@@ -782,14 +863,19 @@ test.serial("update:activePending:multi", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view pending
 		[
 			{
@@ -815,14 +901,19 @@ test.serial("update:activePending:multi", async (t) => {
 			},
 		],
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view previous pending (Complete)
 		{
 			id: 12347,
@@ -902,7 +993,7 @@ test.serial("update:activePending:multi", async (t) => {
 		data: results[3],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		if (callbackValues.length == 0) {
@@ -936,10 +1027,10 @@ test.serial("update:activePending:multi", async (t) => {
 
 	// THEN
 	t.false(toggler.hasPendingStateChange, "no pending change");
-	t.is(result2, 3, "resolved value is from completed instruction");
-	t.is(toggler.value(), 3, "current value is from completed instruction");
+	t.is(result2, "3", "resolved value is from completed instruction");
+	t.is(toggler.value(), "3", "current value is from completed instruction");
 
-	t.deepEqual(callbackValues, [0, 3], "callback invoked");
+	t.deepEqual(callbackValues, [0, "3"], "callback invoked");
 });
 
 test.serial("update:pending:other", async (t) => {
@@ -947,14 +1038,19 @@ test.serial("update:pending:other", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view pending
 		[
 			{
@@ -993,7 +1089,7 @@ test.serial("update:pending:other", async (t) => {
 		data: results[1],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		t.false(
@@ -1058,7 +1154,7 @@ test.serial("update:pending:noMostRecent", async (t) => {
 		data: results[0],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		t.true(this.hasPendingStateChange, "has pending");
@@ -1087,14 +1183,19 @@ test.serial("start", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 1,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 1,
+				},
+			],
+		},
 	];
 
 	// query for most-recent value
@@ -1123,7 +1224,7 @@ test.serial("start", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		t.false(this.hasPendingStateChange, "no pending changes");
@@ -1150,22 +1251,32 @@ test.serial("stop", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 1,
-			},
-		],
-		[
-			{
-				created: "2017-07-26 05:58:00.000Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 2,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 1,
+				},
+			],
+		},
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:58:00.000Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 2,
+				},
+			],
+		},
 	];
 
 	// query for most-recent value
@@ -1220,7 +1331,7 @@ test.serial("stop", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function () {
 		t.false(this.hasPendingStateChange, "no pending changes");
 		callbackValues.push(this.value());
