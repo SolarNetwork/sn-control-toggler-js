@@ -1,11 +1,13 @@
 import { Datum, DatumInfo, InstructionInfo } from "solarnetwork-api-core/lib/domain/index.js";
 import { AuthorizationV2Builder, SolarQueryApi, SolarUserApi } from "solarnetwork-api-core/lib/net/index.js";
+/** The control value type. */
+export type ControlValueType = boolean | number | string;
 /**
- * Extension to Datum class with a specific `val` number property.
+ * Extension to Datum class with a specific `val` property.
  */
 export declare class ControlDatum extends Datum {
     /** The control value. */
-    val?: number;
+    val?: ControlValueType;
     constructor(info: DatumInfo);
 }
 /**
@@ -95,14 +97,14 @@ declare class ControlToggler {
      *
      * @returns the last known control value
      */
-    value(): number | undefined;
+    value(): ControlValueType | undefined;
     /**
      * Set the desired control value.
      *
      * @param desiredValue the control value to set
      * @returns a promise that resolves to the enqueued instruction
      */
-    value(desiredValue: number): Promise<InstructionInfo>;
+    value(desiredValue: ControlValueType): Promise<InstructionInfo>;
     /**
      * Refresh the control state from SolarNetwork.
      *
@@ -111,7 +113,7 @@ declare class ControlToggler {
      *
      * @returns promise that resolves after getting the updated state
      */
-    update(): Promise<number | undefined | void>;
+    update(): Promise<ControlValueType | undefined | void>;
     /**
      * Start automatically updating the status of the configured control.
      *
