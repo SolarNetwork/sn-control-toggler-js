@@ -374,14 +374,19 @@ test.serial("update", async (t) => {
 	// GIVEN
 	const http = t.context.agent.get("http://localhost");
 	const results = [
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 3,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 3,
+				},
+			],
+		},
 	];
 
 	// first query for most-recent value
@@ -424,29 +429,38 @@ test.serial("update", async (t) => {
 	t.false(toggler.hasPendingStateChange, "no pending change");
 	t.is(
 		result,
-		results[0][0].val,
+		results[0].results[0].val,
 		"resolved value is from most recent response"
 	);
 	t.is(
 		toggler.value(),
-		results[0][0].val,
+		results[0].results[0].val,
 		"current value is from most recent response"
 	);
-	t.deepEqual(callbackValues, [results[0][0].val], "callback invoked");
+	t.deepEqual(
+		callbackValues,
+		[results[0].results[0].val],
+		"callback invoked"
+	);
 });
 
 test.serial("update:alternateQueryApi", async (t) => {
 	// GIVEN
 	const httpQuery = t.context.agent.get("http://query.local");
 	const results = [
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 3,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 3,
+				},
+			],
+		},
 	];
 
 	// first query for most-recent value
@@ -499,29 +513,38 @@ test.serial("update:alternateQueryApi", async (t) => {
 	t.false(toggler.hasPendingStateChange, "no pending change");
 	t.is(
 		result,
-		results[0][0].val,
+		results[0].results[0].val,
 		"resolved value is from most recent response"
 	);
 	t.is(
 		toggler.value(),
-		results[0][0].val,
+		results[0].results[0].val,
 		"current value is from most recent response"
 	);
-	t.deepEqual(callbackValues, [results[0][0].val], "callback invoked");
+	t.deepEqual(
+		callbackValues,
+		[results[0].results[0].val],
+		"callback invoked"
+	);
 });
 
 test.serial("update:callbackThrowsError", async (t) => {
 	// GIVEN
 	const http = t.context.agent.get("http://localhost");
 	const results = [
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 3,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 3,
+				},
+			],
+		},
 	];
 
 	// first query for most-recent value
@@ -565,15 +588,19 @@ test.serial("update:callbackThrowsError", async (t) => {
 	t.false(toggler.hasPendingStateChange, "no pending change");
 	t.is(
 		result,
-		results[0][0].val,
+		results[0].results[0].val,
 		"resolved value is from most recent response"
 	);
 	t.is(
 		toggler.value(),
-		results[0][0].val,
+		results[0].results[0].val,
 		"current value is from most recent response"
 	);
-	t.deepEqual(callbackValues, [results[0][0].val], "callback invoked");
+	t.deepEqual(
+		callbackValues,
+		[results[0].results[0].val],
+		"callback invoked"
+	);
 });
 
 test.serial("update:noPendingLastKnownQueued", async (t) => {
@@ -589,14 +616,19 @@ test.serial("update:noPendingLastKnownQueued", async (t) => {
 			parameters: [{ name: "test-control", value: "1" }],
 		},
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view instruction; now complted and updated to 1
 		{
 			id: 12345,
@@ -700,14 +732,19 @@ test.serial("update:activePending", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view pending
 		[
 			{
@@ -782,14 +819,19 @@ test.serial("update:activePending:multi", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view pending
 		[
 			{
@@ -815,14 +857,19 @@ test.serial("update:activePending:multi", async (t) => {
 			},
 		],
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view previous pending (Complete)
 		{
 			id: 12347,
@@ -947,14 +994,19 @@ test.serial("update:pending:other", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value, still at 0
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 0,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 0,
+				},
+			],
+		},
 		// view pending
 		[
 			{
@@ -1087,14 +1139,19 @@ test.serial("start", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 1,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 1,
+				},
+			],
+		},
 	];
 
 	// query for most-recent value
@@ -1150,22 +1207,32 @@ test.serial("stop", async (t) => {
 	const http = t.context.agent.get("http://localhost");
 	const results = [
 		// most recent value
-		[
-			{
-				created: "2017-07-26 05:57:49.608Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 1,
-			},
-		],
-		[
-			{
-				created: "2017-07-26 05:58:00.000Z",
-				nodeId: 123,
-				sourceId: "test-control",
-				val: 2,
-			},
-		],
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:57:49.608Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 1,
+				},
+			],
+		},
+		{
+			totalResults: 1,
+			startingOffset: 0,
+			returnedResultCount: 1,
+			results: [
+				{
+					created: "2017-07-26 05:58:00.000Z",
+					nodeId: 123,
+					sourceId: "test-control",
+					val: 2,
+				},
+			],
+		},
 	];
 
 	// query for most-recent value
