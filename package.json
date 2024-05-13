@@ -1,6 +1,6 @@
 {
-  "name": "solarnetwork-datum-loader",
-  "version": "2.0.0",
+  "name": "solarnetwork-control-toggler",
+  "version": "1.99.9-dev.1",
   "description": "SolarNetwork Control Toggler",
   "keywords": [
     "solarnetwork"
