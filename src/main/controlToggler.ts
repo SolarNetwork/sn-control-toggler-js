@@ -41,15 +41,18 @@ const InstructionFinishedStates = new Set<InstructionState>([
 	InstructionStates.Declined,
 ]);
 
+/** The control value type. */
+export type ControlValueType = boolean | number | string;
+
 /**
- * Extension to Datum class with a specific `val` number property.
+ * Extension to Datum class with a specific `val` property.
  */
 export class ControlDatum extends Datum {
 	/** The control value. */
-	val?: number;
+	val?: ControlValueType;
 	constructor(info: DatumInfo) {
 		super(info);
-		this.val = !isNaN(info.val) ? +info.val : undefined;
+		this.val = info.val;
 	}
 }
 
@@ -232,12 +235,12 @@ class ControlToggler {
 
 	/**
 	 * Get the last known instruction value, e.g. the state of the control.
-	 * @returns {number} the last know value of the control (0 or 1), or `undefined`
+	 * @returns the last know value of the control (0 or 1), or `undefined`
 	 * @private
 	 */
-	#lastKnownInstructionValue(): number | undefined {
+	#lastKnownInstructionValue(): ControlValueType | undefined {
 		return Array.isArray(this.#lastKnownInstruction?.parameters)
-			? Number(this.#lastKnownInstruction.parameters[0].value)
+			? this.#lastKnownInstruction.parameters[0].value
 			: undefined;
 	}
 
@@ -274,7 +277,7 @@ class ControlToggler {
 	#mostRecentValue(
 		controlDatum?: ControlDatum,
 		instruction?: Instruction
-	): number | undefined {
+	): ControlValueType | undefined {
 		if (
 			!instruction ||
 			InstructionStates.Declined.equals(instruction.state)
@@ -282,7 +285,7 @@ class ControlToggler {
 			return controlDatum?.val;
 		} else if (!controlDatum) {
 			return Array.isArray(instruction.parameters)
-				? Number(instruction.parameters[0].value)
+				? instruction.parameters[0].value
 				: undefined;
 		}
 		// return the newer value
@@ -294,7 +297,7 @@ class ControlToggler {
 		return statusDate > instructionDate
 			? controlDatum.val
 			: Array.isArray(instruction.parameters)
-				? Number(instruction.parameters[0].value)
+				? instruction.parameters[0].value
 				: undefined;
 	}
 
@@ -374,7 +377,7 @@ class ControlToggler {
 	 *
 	 * @returns the last known control value
 	 */
-	value(): number | undefined;
+	value(): ControlValueType | undefined;
 
 	/**
 	 * Set the desired control value.
@@ -382,11 +385,11 @@ class ControlToggler {
 	 * @param desiredValue the control value to set
 	 * @returns a promise that resolves to the enqueued instruction
 	 */
-	value(desiredValue: number): Promise<InstructionInfo>;
+	value(desiredValue: ControlValueType): Promise<InstructionInfo>;
 
 	value(
-		desiredValue?: number
-	): number | undefined | Promise<InstructionInfo> {
+		desiredValue?: ControlValueType
+	): ControlValueType | undefined | Promise<InstructionInfo> {
 		if (desiredValue === undefined) {
 			return this.#lastKnownDatum?.val;
 		}
@@ -402,9 +405,12 @@ class ControlToggler {
 		let cancel: Promise<void> | undefined;
 		let enqueue: Promise<InstructionInfo> | undefined;
 
+		/* !!!!!
+		   Note the loose `!= desiredValue` equality checks for type flexibility
+		   !!!!! */
 		if (
 			pendingState === InstructionStates.Queued &&
-			pendingValue !== desiredValue &&
+			pendingValue != desiredValue &&
 			this.#lastKnownInstruction
 		) {
 			// cancel the pending instruction
@@ -429,7 +435,7 @@ class ControlToggler {
 			pendingValue = undefined;
 		}
 
-		if (currentValue !== desiredValue && pendingValue !== desiredValue) {
+		if (currentValue != desiredValue && pendingValue != desiredValue) {
 			log.debug(
 				"Request node %d to change control %s to %d",
 				this.nodeId,
@@ -491,7 +497,7 @@ class ControlToggler {
 	 *
 	 * @returns promise that resolves after getting the updated state
 	 */
-	update(): Promise<number | undefined | void> {
+	update(): Promise<ControlValueType | undefined | void> {
 		if (!this.#auth.signingKeyValid) {
 			return Promise.reject(
 				new Error("Valid credentials not configured")
@@ -543,7 +549,7 @@ class ControlToggler {
 		}
 
 		return Promise.all(reqs)
-			.then((results): number | undefined => {
+			.then((results): ControlValueType | undefined => {
 				const mostRecentList: DatumInfo[] = results[0].results;
 				const pendingInstruction = this.#getActiveInstruction(
 					results[1]

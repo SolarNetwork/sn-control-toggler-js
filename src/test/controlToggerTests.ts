@@ -12,7 +12,10 @@ import {
 	SolarUserApi,
 } from "solarnetwork-api-core/lib/net/index.js";
 
-import ControlTogger, { ControlCallbackFn } from "../main/controlToggler.js";
+import ControlTogger, {
+	ControlCallbackFn,
+	type ControlValueType,
+} from "../main/controlToggler.js";
 
 const test = anyTest as TestFn<{
 	agent: MockAgent;
@@ -283,7 +286,7 @@ test.serial("setValue:alreadyPending", async (t) => {
 		data: result,
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -456,7 +459,7 @@ test.serial("update", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -535,7 +538,7 @@ test.serial("update:alternateQueryApi", async (t) => {
 			data: [],
 		});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -614,7 +617,7 @@ test.serial("update:callbackThrowsError", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		callbackValues.push(this.value());
@@ -734,7 +737,7 @@ test.serial("update:noPendingLastKnownQueued", async (t) => {
 		data: results[2],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		if (callbackValues.length == 0) {
@@ -763,9 +766,9 @@ test.serial("update:noPendingLastKnownQueued", async (t) => {
 
 	// THEN
 	t.false(toggler.hasPendingStateChange, "no pending change");
-	t.is(result, 1, "resolved value is from updated instruction");
-	t.is(toggler.value(), 1, "current value is from updated instruction");
-	t.deepEqual(callbackValues, [undefined, 1], "callback invoked");
+	t.is(result, "1", "resolved value is from updated instruction");
+	t.is(toggler.value(), "1", "current value is from updated instruction");
+	t.deepEqual(callbackValues, [undefined, "1"], "callback invoked");
 });
 
 test.serial("update:activePending", async (t) => {
@@ -824,7 +827,7 @@ test.serial("update:activePending", async (t) => {
 		data: results[1],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		if (callbackValues.length == 0) {
@@ -990,7 +993,7 @@ test.serial("update:activePending:multi", async (t) => {
 		data: results[3],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		if (callbackValues.length == 0) {
@@ -1024,10 +1027,10 @@ test.serial("update:activePending:multi", async (t) => {
 
 	// THEN
 	t.false(toggler.hasPendingStateChange, "no pending change");
-	t.is(result2, 3, "resolved value is from completed instruction");
-	t.is(toggler.value(), 3, "current value is from completed instruction");
+	t.is(result2, "3", "resolved value is from completed instruction");
+	t.is(toggler.value(), "3", "current value is from completed instruction");
 
-	t.deepEqual(callbackValues, [0, 3], "callback invoked");
+	t.deepEqual(callbackValues, [0, "3"], "callback invoked");
 });
 
 test.serial("update:pending:other", async (t) => {
@@ -1086,7 +1089,7 @@ test.serial("update:pending:other", async (t) => {
 		data: results[1],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		t.false(
@@ -1151,7 +1154,7 @@ test.serial("update:pending:noMostRecent", async (t) => {
 		data: results[0],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		t.true(this.hasPendingStateChange, "has pending");
@@ -1221,7 +1224,7 @@ test.serial("start", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function (error) {
 		t.falsy(error, "no error reported");
 		t.false(this.hasPendingStateChange, "no pending changes");
@@ -1328,7 +1331,7 @@ test.serial("stop", async (t) => {
 		data: [],
 	});
 
-	const callbackValues: Array<number | undefined> = [];
+	const callbackValues: Array<ControlValueType | undefined> = [];
 	const callback: ControlCallbackFn = function () {
 		t.false(this.hasPendingStateChange, "no pending changes");
 		callbackValues.push(this.value());
