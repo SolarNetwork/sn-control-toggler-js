@@ -26,6 +26,7 @@ import fetch from "./fetch.js";
  * @private
  */
 const InstructionActiveStates = new Set<InstructionState>([
+	InstructionStates.Queuing,
 	InstructionStates.Queued,
 	InstructionStates.Received,
 	InstructionStates.Executing,

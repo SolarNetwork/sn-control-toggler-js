@@ -112,6 +112,47 @@ test.serial("setValue", async (t) => {
 	);
 });
 
+test.serial("setValue:queuing", async (t) => {
+	// GIVEN
+	const http = t.context.agent.get("http://localhost");
+	const result = {
+		id: 12345,
+		created: "2015-02-26 21:00:00.000Z",
+		topic: "SetControlParameter",
+		state: "Queuing",
+		parameters: [{ name: "test-control", value: "1" }],
+	};
+	http.intercept({
+		path: "/solaruser/api/v1/sec/instr/add/SetControlParameter",
+		method: "POST",
+		body: "nodeId=123&parameters%5B0%5D.name=test-control&parameters%5B0%5D.value=1",
+		headers: {
+			accept: "application/json",
+			"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+			authorization: AUTH_POST_REGEX,
+		},
+	}).reply(200, {
+		success: true,
+		data: result,
+	});
+
+	// WHEN
+	const toggler = createToggler(t.context.api, t.context.auth);
+	const info = await toggler.value(1);
+
+	// THEN
+	t.deepEqual(
+		info,
+		result,
+		"set value promise resolves to instruction add response"
+	);
+	t.is(
+		toggler.hasPendingStateChange,
+		true,
+		"pending instruction confirmation"
+	);
+});
+
 test.serial("setValue:httpErrorCode", async (t) => {
 	// GIVEN
 	const http = t.context.agent.get("http://localhost");
