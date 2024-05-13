@@ -96,6 +96,7 @@ class ControlToggler {
 	readonly #api: SolarUserApi;
 	readonly #auth: AuthorizationV2Builder;
 	readonly #queryApi: SolarQueryApi;
+	readonly #queryAuth: AuthorizationV2Builder;
 
 	/**
 	 * The node ID to manage the control on.
@@ -147,7 +148,8 @@ class ControlToggler {
 	 * @param nodeId the ID of the node with the control to manage
 	 * @param controlId the ID of the control to manage
 	 * @param queryApi a URL helper for accessing node datum via SolarQuery; if not provided one
-	 *                 will be created using the environment from `api`
+	 *                 will be created using the environment from `api`. Useful in a development
+	 *                 environment when the SolarUser and SolarQuery hosts are different.
 	 */
 	constructor(
 		api: SolarUserApi,
@@ -161,6 +163,12 @@ class ControlToggler {
 		this.nodeId = nodeId;
 		this.controlId = controlId;
 		this.#queryApi = queryApi || new SolarQueryApi(api.environment);
+		this.#queryAuth = queryApi
+			? new AuthorizationV2Builder(
+					auth.tokenId,
+					queryApi.environment
+				).key(auth.key()!)
+			: auth;
 	}
 
 	#notifyDelegate(error?: Error) {
@@ -297,7 +305,11 @@ class ControlToggler {
 	 * @returns promise of the results
 	 * @private
 	 */
-	#fetch<T>(method: HttpMethod, url: string): Promise<T> {
+	#fetch<T>(
+		method: HttpMethod,
+		url: string,
+		auth: AuthorizationV2Builder
+	): Promise<T> {
 		let fetchUrl: string = url;
 		let reqData: string | null = null;
 		let contentType: HttpContentType | undefined = undefined;
@@ -313,8 +325,7 @@ class ControlToggler {
 		const headers: any = {
 			Accept: "application/json",
 		};
-		const auth = this.#auth;
-		if (auth && auth.signingKeyValid) {
+		if (auth.signingKeyValid) {
 			auth.reset().snDate(true).method(method).url(url);
 			if (contentType) {
 				auth.contentType(contentType);
@@ -406,7 +417,11 @@ class ControlToggler {
 				this.#lastKnownInstruction.id,
 				InstructionStates.Declined
 			);
-			cancel = this.#fetch(HttpMethod.POST, cancelInstructionUrl);
+			cancel = this.#fetch(
+				HttpMethod.POST,
+				cancelInstructionUrl,
+				this.#auth
+			);
 			this.#lastKnownInstruction = undefined;
 			pendingState = undefined;
 			pendingValue = undefined;
@@ -430,13 +445,15 @@ class ControlToggler {
 					this.#lastKnownInstruction = undefined;
 					return this.#fetch<InstructionInfo>(
 						HttpMethod.POST,
-						queueInstructionUrl
+						queueInstructionUrl,
+						this.#auth
 					);
 				});
 			} else {
 				enqueue = this.#fetch<InstructionInfo>(
 					HttpMethod.POST,
-					queueInstructionUrl
+					queueInstructionUrl,
+					this.#auth
 				);
 			}
 
@@ -490,7 +507,11 @@ class ControlToggler {
 		filter.nodeId = this.nodeId;
 		filter.sourceId = this.controlId;
 		const mostRecentUrl = this.#queryApi.mostRecentDatumUrl(filter);
-		reqs[0] = this.#fetch<DatumInfo[]>(HttpMethod.GET, mostRecentUrl);
+		reqs[0] = this.#fetch<DatumInfo[]>(
+			HttpMethod.GET,
+			mostRecentUrl,
+			this.#queryAuth
+		);
 
 		// query for pending instructions to see if we have an in-flight SetControlParameter on the go already
 		const viewPendingUrl = this.#api.viewPendingInstructionsUrl(
@@ -498,7 +519,8 @@ class ControlToggler {
 		);
 		reqs[1] = this.#fetch<InstructionInfo[]>(
 			HttpMethod.GET,
-			viewPendingUrl
+			viewPendingUrl,
+			this.#auth
 		);
 
 		const lastKnownInstr = this.#lastKnownInstruction;
@@ -513,7 +535,8 @@ class ControlToggler {
 			);
 			reqs[2] = this.#fetch<InstructionInfo>(
 				HttpMethod.GET,
-				viewInstructionUrl
+				viewInstructionUrl,
+				this.#auth
 			);
 		}
 

@@ -83,7 +83,7 @@
     "prettier:write": "prettier --config .prettierrc.json \"src/**/*.ts\" --write"
   },
   "dependencies": {
-    "solarnetwork-api-core": "^2.2.0"
+    "solarnetwork-api-core": "^2.2.2"
   },
   "devDependencies": {
     "@ava/typescript": "^5.0.0",
