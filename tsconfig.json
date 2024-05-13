@@ -1,0 +1,11 @@
+{
+	"extends": "@tsconfig/node18/tsconfig.json",
+	"include": ["src/**/*"],
+	"compilerOptions": {
+		"outDir": "build",
+		"declaration": true,
+		"sourceMap": true,
+		"declarationMap": true,
+		"isolatedModules": true
+	}
+}

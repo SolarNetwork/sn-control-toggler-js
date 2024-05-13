@@ -1,8 +1,13 @@
 .DS_Store
 .nyc_output
 .vscode
+*.log
+*.tsbuildinfo
 build
 coverage
 docs/api
+docs/html
+lib/test
 node_modules
 npm-debug.log
+temp
