@@ -112,7 +112,7 @@
     "tslib": "^2.6.2",
     "typedoc": "^0.25.13",
     "typescript": "^5.4.5",
-    "undici": "^6.16.1"
+    "undici": "^6.19.2"
   },
   "overrides": {
     "json5": "2.2.3",
