@@ -1,5 +1,5 @@
-import { Datum, DatumInfo, InstructionInfo } from "solarnetwork-api-core/lib/domain/index.js";
-import { AuthorizationV2Builder, SolarQueryApi, SolarUserApi } from "solarnetwork-api-core/lib/net/index.js";
+import { Datum, DatumInfo, InstructionInfo } from "solarnetwork-api-core/lib/domain";
+import { AuthorizationV2Builder, SolarQueryApi, SolarUserApi } from "solarnetwork-api-core/lib/net";
 /** The control value type. */
 export type ControlValueType = boolean | number | string;
 /**
