@@ -1,6 +1,3 @@
-/// <reference types="node" resolution-mode="require"/>
-/// <reference types="node" resolution-mode="require"/>
-/// <reference types="node" resolution-mode="require"/>
 interface Headers {
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/append) */
     append(name: string, value: string): void;
