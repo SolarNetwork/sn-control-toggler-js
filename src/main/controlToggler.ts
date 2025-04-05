@@ -9,8 +9,8 @@ import {
 	InstructionState,
 	InstructionStates,
 	Result,
-} from "solarnetwork-api-core/lib/domain/index.js";
-import { Logger as log } from "solarnetwork-api-core/lib/util/index.js";
+} from "solarnetwork-api-core/lib/domain";
+import { Logger as log } from "solarnetwork-api-core/lib/util";
 import {
 	AuthorizationV2Builder,
 	HttpContentType,
@@ -18,7 +18,7 @@ import {
 	HttpMethod,
 	SolarQueryApi,
 	SolarUserApi,
-} from "solarnetwork-api-core/lib/net/index.js";
+} from "solarnetwork-api-core/lib/net";
 import fetch from "./fetch.js";
 
 /**
