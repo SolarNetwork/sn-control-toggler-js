@@ -17,6 +17,12 @@
   },
   "type": "module",
   "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "import": "./lib/index.js",
+      "require": "./lib/solarnetwork-control-toggler.es.cjs"
+    }
+  },
   "engines": {
     "node": ">=20"
   },
@@ -72,6 +78,7 @@
     "build": "tsc",
     "build:dist": "tsc --build tsconfig.dist.json",
     "build:bundle": "rollup --config rollup.config.mjs --banner \"$(preamble)\" -m -o lib/solarnetwork-control-toggler.es.js",
+    "build:bundle:cjs": "rollup --config rollup.config.cjs.mjs --format cjs --banner \"$(preamble)\" -m -o lib/solarnetwork-control-toggler.es.cjs",
     "pretest": "npm run build",
     "test": "c8 ava",
     "coverage": "c8 --reporter=lcov ava",
