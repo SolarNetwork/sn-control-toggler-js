@@ -1,5 +1,10 @@
 # SolarNetwork Control Toggler
 
+> :warning: This project has been absorbed into the [solarnetwork-api-core][solarnetwork-api-core]
+> package, starting in its `3.1.0` release. The classes are in the [Tool sub-package][tool-module].
+
+# Legacy information
+
 Control Toggler is a helper class that uses the SolarNetwork [Instruction API][api-queue-instr] to
 request a SolarNode to set the value of a _control_ to `1` (on) or `0` (off), and the
 SolarNetwork [Datum Query API][api-datum-recent] to track the value of the control.
@@ -24,7 +29,7 @@ Some example SolarNode plugins that support on/off switching are:
 To include the library in your NPM-based project, run the following:
 
 ```sh
-npm i solarnetwork-datum-loader
+npm i solarnetwork-control-toggler
 ```
 
 # API docs
@@ -40,3 +45,5 @@ That will produce HTML documentation in `docs/html`.
 
 [api-queue-instr]: https://github.com/SolarNetwork/solarnetwork/wiki/SolarUser-API#queue-instruction
 [api-datum-recent]: https://github.com/SolarNetwork/solarnetwork/wiki/SolarQuery-API#most-recent-datum
+[solarnetwork-api-core]: https://www.npmjs.com/package/solarnetwork-api-core
+[tool-module]: https://solarnetwork.github.io/sn-api-core-js/html/modules/Tool.html
